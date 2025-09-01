@@ -15,5 +15,6 @@ import org.springframework.scheduling.annotation.EnableAsync;
 public class ShanZhuApplication {
     public static void main(String[] args) {
         SpringApplication.run(ShanZhuApplication.class, args);
+        System.out.println("启动成功");
     }
 }
