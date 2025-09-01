@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.shanzhu.mapper.finance.FinancialRecordsMapper">
+    <!-- 财务记录 DO 的 resultMap -->
+    <resultMap id="FinancialRecordsResultMap" type="com.shanzhu.entity.finance.FinancialRecordsDO">
+        <!-- 主键 -->
+        <id property="id" column="id" />
+        <!-- 普通字段 -->
+        <result property="transactionDate" column="transaction_date" />
+        <result property="transactionType" column="transaction_type" />
+        <result property="amount" column="amount" />
+        <result property="categoryCode" column="category_code" />
+        <result property="accountName" column="account_name" />
+        <result property="remark" column="remark" />
+        <result property="currency" column="currency" />
+        <result property="tagsId" column="tags_id" />
+        <result property="ledgerBookName" column="ledger_book_name" />
+        <result property="location" column="location" />
+        <result property="refund" column="refund" />
+        <result property="imageUrls" column="image_urls" />
+        <!-- 继承自 BaseEntity 的字段 -->
+        <result property="createId" column="create_id" />
+        <result property="createTime" column="create_time" />
+        <result property="updateId" column="update_id" />
+        <result property="updateTime" column="update_time" />
+    </resultMap>
+    <insert id="insertBatch">
+        insert into biz_financial_records (id,transaction_date, transaction_type, amount, category_code, account_name, remark, currency, tags_id, ledger_book_name, location, refund, image_urls, create_id, create_time, update_id, update_time)
+        VALUES
+        <foreach collection="list" item="item" index="index" separator=",">
+            (#{item.id},#{item.transactionDate}, #{item.transactionType}, #{item.amount}, #{item.categoryCode}, #{item.accountName}, #{item.remark}, #{item.currency}, #{item.tagsId}, #{item.ledgerBookName}, #{item.location}, #{item.refund}, #{item.imageUrls}, #{item.createId}, #{item.createTime}, #{item.updateId}, #{item.updateTime})
+        </foreach>
+    </insert>
+    <delete id="deleteAll">
+        delete from biz_financial_records
+    </delete>
+    <select id="queryFinancialCategory" resultType="com.shanzhu.model.finance.vo.FinancialCategoryVO">
+        SELECT * FROM biz_financial_category
+
+    </select>
+</mapper>
