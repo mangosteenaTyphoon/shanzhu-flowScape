@@ -49,6 +49,7 @@ public class FinancialCategoryServiceImpl implements FinancialCategoryService {
                 if(financialCategoryParentVO.getCode().equals(financialCategoryChildVO.getParentCode())){
                     financialCategoryChildren.add(financialCategoryChildVO);
                 }
+
             }
             financialCategoryParentVO.setChildren(financialCategoryChildren);
         }
