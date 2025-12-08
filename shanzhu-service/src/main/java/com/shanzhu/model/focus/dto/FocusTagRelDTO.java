@@ -7,16 +7,21 @@ import lombok.EqualsAndHashCode;
 import java.util.List;
 
 /**
- * 目标与标签关联 DTO
+ * 标签与目标/任务的通用关联 DTO
  */
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class FocusGoalTagRelDTO extends BaseDTO {
+public class FocusTagRelDTO extends BaseDTO {
     
     /**
-     * 目标ID
+     * 实体ID
      */
-    private Long goalId;
+    private Long entityId;
+    
+    /**
+     * 实体类型 (goal: 目标, task: 任务)
+     */
+    private String entityType;
     
     /**
      * 标签ID列表
