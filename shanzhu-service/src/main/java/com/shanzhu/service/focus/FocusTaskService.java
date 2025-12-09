@@ -38,7 +38,7 @@ public interface FocusTaskService extends IService<FocusTaskDO> {
      * @param focusTaskDO 专注任务信息
      * @return 结果信息
      */
-    Boolean save(FocusTaskDO focusTaskDO);
+    boolean save(FocusTaskDO focusTaskDO);
     
     /**
      * 根据ID删除专注任务

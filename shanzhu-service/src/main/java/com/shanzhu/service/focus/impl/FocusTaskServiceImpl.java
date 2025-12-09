@@ -83,9 +83,9 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
     }
     
     @Override
-    public Boolean save(FocusTaskDO focusTaskDO) {
+    public boolean save(FocusTaskDO focusTaskDO) {
         // 设置用户ID
-        focusTaskDO.setUserId(LoginUserContext.getUserId());
+        focusTaskDO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
         
         if (focusTaskDO.getId() == null) {
             // 新增
