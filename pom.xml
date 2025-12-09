@@ -12,7 +12,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-<!--        因knife4j兼容性问题，暂不建议springboot版本升级到3.4.x以上 -->
+        <!--        因knife4j兼容性问题，暂不建议springboot版本升级到3.4.x以上 -->
         <version>3.3.10</version>
         <relativePath/>
     </parent>
@@ -34,9 +34,10 @@
         <minio.version>8.5.17</minio.version>
         <knife4j.version>4.5.0</knife4j.version>
         <dynamic-datasource.version>4.3.1</dynamic-datasource.version>
+        <mapstruct.version>1.5.2.Final</mapstruct.version>
     </properties>
 
-<!--    统一进行版本管理-->
+    <!--    统一进行版本管理-->
     <dependencyManagement>
         <dependencies>
             <!--mybatis-plus版本管理-->
@@ -178,6 +179,12 @@
             <artifactId>knife4j-openapi3-jakarta-spring-boot-starter</artifactId>
             <version>${knife4j.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${mapstruct.version}</version>
+        </dependency>
     </dependencies>
 
     <modules>
@@ -211,7 +218,7 @@
             </plugin>
         </plugins>
 
-<!--        指定打包后包含的文件-->
+        <!--        指定打包后包含的文件-->
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
