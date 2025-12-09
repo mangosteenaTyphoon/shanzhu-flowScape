@@ -89,10 +89,9 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
      * 将 FocusTaskDO 转换为 FocusTaskVO
      */
     private FocusTaskVO convertToVO(FocusTaskDO taskDO) {
-        FocusTaskVO vo = new FocusTaskVO();
 
         // 复制基本属性
-        BeanUtils.copyProperties(taskDO, vo);
+        FocusTaskVO vo = focusTaskConvert.convertToVo(taskDO);
 
         // 填充标签信息
         List<Long> tagIds = focusTagRelService.queryTagIdsByEntityIdAndType(taskDO.getId(), "task");

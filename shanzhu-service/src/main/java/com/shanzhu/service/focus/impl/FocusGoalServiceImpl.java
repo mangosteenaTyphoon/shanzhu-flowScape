@@ -84,10 +84,10 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
      * 将 FocusGoalDO 转换为 FocusGoalVO
      */
     private FocusGoalVO convertToVO(FocusGoalDO goalDO) {
-        FocusGoalVO vo = new FocusGoalVO();
+
 
         // 复制基本属性
-        focusGoalConvert.convertToVo(goalDO, vo);
+        FocusGoalVO vo = focusGoalConvert.convertToVo(goalDO);
 
         // 填充标签信息
         List<Long> tagIds = focusTagRelService.queryTagIdsByEntityIdAndType(goalDO.getId(), "goal");

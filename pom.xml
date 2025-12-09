@@ -211,6 +211,19 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.0</version>
                 <configuration>
+                    <annotationProcessorPaths>
+                        <annotationProcessorPath>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </annotationProcessorPath>
+                        <!-- Lombok 注解处理器 -->
+                         <annotationProcessorPath>
+                         <groupId>org.projectlombok</groupId>
+                         <artifactId>lombok</artifactId>
+                         <version>${lombok.version}</version>
+                         </annotationProcessorPath>
+                    </annotationProcessorPaths>
                     <compilerArgs>
                         <arg>-parameters</arg>
                     </compilerArgs>
