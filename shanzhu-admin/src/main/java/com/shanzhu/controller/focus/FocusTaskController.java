@@ -5,6 +5,7 @@ import com.shanzhu.annotation.Log;
 import com.shanzhu.entity.focus.FocusTaskDO;
 import com.shanzhu.enums.LogTypeEnum;
 import com.shanzhu.model.focus.dto.FocusTaskDTO;
+import com.shanzhu.model.focus.vo.FocusTaskVO;
 import com.shanzhu.model.web.ApiResponseModel;
 import com.shanzhu.model.web.basecontroller.ApiResponseController;
 import com.shanzhu.service.focus.FocusTaskService;
@@ -34,7 +35,7 @@ public class FocusTaskController extends ApiResponseController {
      */
     @Operation(summary = "分页查询专注任务")
     @PostMapping("/page")
-    public ApiResponseModel<IPage<FocusTaskDO>> queryPage(@RequestBody FocusTaskDTO focusTaskDTO) {
+    public ApiResponseModel<IPage<FocusTaskVO>> queryPage(@RequestBody FocusTaskDTO focusTaskDTO) {
         return success(focusTaskService.queryPage(focusTaskDTO));
     }
     
