@@ -44,6 +44,8 @@ spring:
             idle-timeout: 120000
             # 连接生命时长（毫秒）
             max-lifetime: 1800000
+            # 连接测试查询
+            connection-test-query: SELECT 1
 # 多数据源配置，使用dynamic-datasource实现，具体文档请参考：https://www.kancloud.cn/tracy5546/dynamic-datasource/2264611
 #        slave_1:
 #          driver-class-name: com.mysql.cj.jdbc.Driver
@@ -64,12 +66,13 @@ spring:
   # redis配置
   data:
     redis:
-      host: 127.0.0.1
+      host: localhost
       port: 6379
+      password:
       # 读取超时
-      timeout: 3000
+      timeout: 8000
       # 连接超时
-      connectTimeout: 5000
+      connectTimeout: 8000
       # lettuce连接池
       lettuce:
         pool:
