@@ -74,7 +74,7 @@ public class FocusTagRelServiceImpl extends ServiceImpl<FocusTagRelMapper, Focus
                             .build())
                     .collect(Collectors.toList());
 
-            boolean result = this.saveBatch(relList);
+            boolean result = super.saveBatch(relList);
 
             if (result) {
                 log.info("保存标签关联关系成功: entityId={}, entityType={}, tagCount={}",

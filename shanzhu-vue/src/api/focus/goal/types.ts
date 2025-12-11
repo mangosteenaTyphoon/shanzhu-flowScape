@@ -20,6 +20,7 @@ export interface FocusGoal {
   overdueCompletionTimeSec?: number
   createdAt?: string
   updatedAt?: string
+  tagIds?: string[] // 标签ID数组（用于保存）
 }
 
 /**

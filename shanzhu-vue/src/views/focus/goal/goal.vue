@@ -205,6 +205,48 @@
             💡 提示：可直接输入新分类名称，点击"新增"按钮快速创建
           </div>
         </a-form-item>
+        <a-form-item label="目标标签" name="tagIds">
+          <a-input-group compact>
+            <a-select
+              v-model:value="selectedTagIds"
+              mode="multiple"
+              placeholder="请选择标签（可多选）"
+              :options="tagList.map(t => ({ value: t.id, label: t.name }))"
+              @change="handleTagChange"
+              allow-clear
+              style="width: calc(100% - 80px)"
+              :loading="tagLoading"
+              :show-search="true"
+              :filter-option="(input: string, option: any) => option.label.toLowerCase().includes(input.toLowerCase())"
+            >
+              <template #notFoundContent>
+                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无数据" />
+              </template>
+            </a-select>
+            <a-input
+              v-model:value="tagSearchValue"
+              placeholder="新标签名"
+              style="width: calc(100% - 160px); display: none"
+            />
+            <a-button type="primary" @click="handleTagAdd" style="width: 80px" :loading="tagLoading">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+              新增
+            </a-button>
+          </a-input-group>
+          <div style="margin-top: 8px">
+            <a-input
+              v-model:value="tagSearchValue"
+              placeholder="输入新标签名称"
+              style="width: calc(100% - 88px); margin-right: 8px"
+              @pressEnter="handleTagAdd"
+            />
+          </div>
+          <div style="margin-top: 4px; color: #999; font-size: 12px">
+            💡 提示：可输入新标签名称后点击"新增"按钮快速创建，支持多选
+          </div>
+        </a-form-item>
         <a-row>
           <a-col :span="12">
             <a-form-item label="开始日期" :label-col="{span: 8}" name="startDate">
@@ -270,6 +312,13 @@ import {
   saveFocusCategory
 } from '@/api/focus/category'
 import type { FocusCategory } from '@/api/focus/category/types'
+
+// 添加标签相关的API引入
+import {
+  listFocusTag,
+  saveFocusTag
+} from '@/api/focus/tag'
+import type { FocusTag } from '@/api/focus/tag/types'
 
 // 数据接口定义
 interface FocusGoal {
@@ -422,6 +471,12 @@ const categoryList = ref<FocusCategory[]>([])
 const categoryLoading = ref<boolean>(false)
 const categorySearchValue = ref<string>('')
 
+// ========== 新增：标签相关状态 ==========
+const tagList = ref<FocusTag[]>([])
+const tagLoading = ref<boolean>(false)
+const selectedTagIds = ref<number[]>([]) // 已选中的标签ID列表
+const tagSearchValue = ref<string>('') // 标签搜索值
+
 // 获取分类列表
 const fetchCategoryList = async () => {
   try {
@@ -432,6 +487,19 @@ const fetchCategoryList = async () => {
     console.error('获取分类列表失败:', err)
   } finally {
     categoryLoading.value = false
+  }
+}
+
+// 获取标签列表
+const fetchTagList = async () => {
+  try {
+    tagLoading.value = true
+    const response = await listFocusTag({})
+    tagList.value = response.data || []
+  } catch (err) {
+    console.error('获取标签列表失败:', err)
+  } finally {
+    tagLoading.value = false
   }
 }
 
@@ -509,6 +577,67 @@ const handleCategoryAdd = async () => {
   }
 }
 
+// 新增：标签选择变化
+const handleTagChange = (values: number[]) => {
+  selectedTagIds.value = values
+}
+
+// 新增：快速新增标签
+const handleTagAdd = async () => {
+  if (!tagSearchValue.value || tagSearchValue.value.trim() === '') {
+    message.warning('请输入标签名称')
+    return
+  }
+
+  // 检查是否已存在
+  const existTag = tagList.value.find(
+    t => t.name === tagSearchValue.value.trim()
+  )
+  if (existTag) {
+    // 如果已存在且未选中，则自动选中
+    if (!selectedTagIds.value.includes(existTag.id!)) {
+      selectedTagIds.value.push(existTag.id!)
+    }
+    tagSearchValue.value = ''
+    message.info('该标签已存在，已自动选择')
+    return
+  }
+
+  try {
+    tagLoading.value = true
+    const newTag: FocusTag = {
+      name: tagSearchValue.value.trim(),
+      color: '#1890ff'
+    }
+
+    const response = await saveFocusTag(newTag)
+
+    // 检查响应状态码
+    if (response.code === 200) {
+      message.success('标签创建成功')
+
+      // 重新加载标签列表
+      await fetchTagList()
+
+      // 自动选择新创建的标签
+      const created = tagList.value.find(t => t.name === newTag.name)
+      if (created && !selectedTagIds.value.includes(created.id!)) {
+        selectedTagIds.value.push(created.id!)
+      }
+
+      // 清空搜索值
+      tagSearchValue.value = ''
+    } else {
+      message.error(response.msg || '创建标签失败')
+    }
+  } catch (err) {
+    console.error('创建标签失败:', err)
+    message.error('创建标签失败')
+  } finally {
+    tagLoading.value = false
+  }
+}
+
 // 模态框相关
 const modalVisible = ref<boolean>(false)
 const modalConfirmLoading = ref<boolean>(false)
@@ -546,10 +675,12 @@ const handleAdd = () => {
     finalProgress: 0
   })
   categorySearchValue.value = '' // 清空搜索值
+  selectedTagIds.value = [] // 清空标签选择
+  tagSearchValue.value = '' // 清空标签搜索值
   modalVisible.value = true
 }
 
-// 修改：编辑操作中的分类显示
+// 修改：编辑操作中的分类和标签显示
 const handleEdit = async (record: FocusGoal) => {
   modalTitle.value = '编辑专注目标'
   isEdit.value = true
@@ -565,6 +696,13 @@ const handleEdit = async (record: FocusGoal) => {
       categorySearchValue.value = category ? category.name! : ''
     } else {
       categorySearchValue.value = ''
+    }
+
+    // 设置已选中的标签（将字符串数组转换为数字数组）
+    if (response.data.tagIds && response.data.tagIds.length > 0) {
+      selectedTagIds.value = response.data.tagIds.map((id: string) => Number(id))
+    } else {
+      selectedTagIds.value = []
     }
 
     // 处理日期格式
@@ -601,6 +739,9 @@ const handleModalOk = () => {
         if (formData.endDate instanceof dayjs) {
           formData.endDate = (formData.endDate as unknown as Dayjs).format('YYYY-MM-DD')
         }
+
+        // 添加标签ID（转换为字符串数组）
+        formData.tagIds = selectedTagIds.value.map(id => String(id))
 
         await saveFocusGoal(formData)
         message.success(`${isEdit.value ? '编辑' : '新增'}成功`)
@@ -659,6 +800,7 @@ const handleBatchDelete = async () => {
 onMounted(() => {
   fetchData()
   fetchCategoryList() // 加载分类列表
+  fetchTagList() // 加载标签列表
 })
 </script>
 
