@@ -175,8 +175,35 @@
         <a-form-item label="目标描述" name="description">
           <a-textarea v-model:value="modalForm.description" placeholder="请输入目标描述" :rows="3" />
         </a-form-item>
-        <a-form-item label="分类ID" name="categoryId">
-          <a-input-number v-model:value="modalForm.categoryId" placeholder="请输入分类ID" style="width: 100%" />
+        <a-form-item label="目标分类" name="categoryId">
+          <a-input-group compact>
+            <a-auto-complete
+              v-model:value="categorySearchValue"
+              :options="filteredCategoryOptions"
+              placeholder="请选择或输入分类"
+              :filter-option="filterCategoryOption"
+              @select="handleCategorySelect"
+              allow-clear
+              style="width: calc(100% - 80px)"
+            >
+              <template #notFoundContent>
+                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无数据">
+                  <template #description>
+                    <span style="color: #999">输入分类名称后点击"新增"按钮</span>
+                  </template>
+                </a-empty>
+              </template>
+            </a-auto-complete>
+            <a-button type="primary" @click="handleCategoryAdd" style="width: 80px" :loading="categoryLoading">
+              <template #icon>
+                <PlusOutlined />
+              </template>
+              新增
+            </a-button>
+          </a-input-group>
+          <div style="margin-top: 4px; color: #999; font-size: 12px">
+            💡 提示：可直接输入新分类名称，点击"新增"按钮快速创建
+          </div>
         </a-form-item>
         <a-row>
           <a-col :span="12">
@@ -202,7 +229,7 @@
           <a-slider v-model:value="modalForm.finalProgress" :min="0" :max="100" />
         </a-form-item>
       </a-form>
-      
+
       <template #footer>
         <a-button @click="handleModalCancel">关 闭</a-button>
         <a-button type="primary" @click="handleModalOk" :loading="modalConfirmLoading">保 存</a-button>
@@ -212,8 +239,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
-import { message, Modal } from 'ant-design-vue'
+import { ref, reactive, onMounted, computed } from 'vue'
+import { message, Modal, Empty } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import type { TableProps } from 'ant-design-vue'
 import type { Dayjs } from 'dayjs'
@@ -236,6 +263,13 @@ import {
   saveFocusGoal,
   deleteFocusGoal
 } from '@/api/focus/goal'
+
+// 添加分类相关的API引入
+import {
+  listFocusCategory,
+  saveFocusCategory
+} from '@/api/focus/category'
+import type { FocusCategory } from '@/api/focus/category/types'
 
 // 数据接口定义
 interface FocusGoal {
@@ -383,6 +417,98 @@ const fetchData = async () => {
   }
 }
 
+// ========== 新增：分类相关状态 ==========
+const categoryList = ref<FocusCategory[]>([])
+const categoryLoading = ref<boolean>(false)
+const categorySearchValue = ref<string>('')
+
+// 获取分类列表
+const fetchCategoryList = async () => {
+  try {
+    categoryLoading.value = true
+    const response = await listFocusCategory({ type: 'goal' })
+    categoryList.value = response.data || []
+  } catch (err) {
+    console.error('获取分类列表失败:', err)
+  } finally {
+    categoryLoading.value = false
+  }
+}
+
+// 新增：计算过滤后的分类选项
+const filteredCategoryOptions = computed(() => {
+  return categoryList.value.map(c => ({
+    value: c.name,
+    label: c.name,
+    id: c.id
+  }))
+})
+
+// 新增：过滤函数
+const filterCategoryOption = (inputValue: string, option: any) => {
+  return option.value.toLowerCase().includes(inputValue.toLowerCase())
+}
+
+// 修改：分类选择 - 根据名称查找ID
+const handleCategorySelect = (value: string, option: any) => {
+  categorySearchValue.value = value
+  if (option && option.id) {
+    modalForm.categoryId = option.id
+  }
+}
+
+// 修改：快速新增分类
+const handleCategoryAdd = async () => {
+  if (!categorySearchValue.value || categorySearchValue.value.trim() === '') {
+    message.warning('请输入分类名称')
+    return
+  }
+
+  // 检查是否已存在
+  const existCategory = categoryList.value.find(
+    c => c.name === categorySearchValue.value.trim()
+  )
+  if (existCategory) {
+    modalForm.categoryId = existCategory.id
+    categorySearchValue.value = existCategory.name!
+    message.info('该分类已存在，已自动选择')
+    return
+  }
+
+  try {
+    categoryLoading.value = true
+    const newCategory: FocusCategory = {
+      name: categorySearchValue.value.trim(),
+      type: 'goal',
+      color: '#1890ff'
+    }
+
+    const response = await saveFocusCategory(newCategory)
+
+    // 检查响应状态码
+    if (response.code === 200) {
+      message.success('分类创建成功')
+
+      // 重新加载分类列表
+      await fetchCategoryList()
+
+      // 自动选择新创建的分类
+      const created = categoryList.value.find(c => c.name === newCategory.name)
+      if (created) {
+        modalForm.categoryId = created.id
+        categorySearchValue.value = created.name!
+      }
+    } else {
+      message.error(response.msg || '创建分类失败')
+    }
+  } catch (err) {
+    console.error('创建分类失败:', err)
+    message.error('创建分类失败')
+  } finally {
+    categoryLoading.value = false
+  }
+}
+
 // 模态框相关
 const modalVisible = ref<boolean>(false)
 const modalConfirmLoading = ref<boolean>(false)
@@ -419,18 +545,28 @@ const handleAdd = () => {
     status: 'active',
     finalProgress: 0
   })
+  categorySearchValue.value = '' // 清空搜索值
   modalVisible.value = true
 }
 
-// 编辑操作
+// 修改：编辑操作中的分类显示
 const handleEdit = async (record: FocusGoal) => {
   modalTitle.value = '编辑专注目标'
   isEdit.value = true
   modalVisible.value = true
-  
+
   try {
     const response = await getFocusGoal(record.id!)
     Object.assign(modalForm, response.data)
+
+    // 设置分类显示名称
+    if (response.data.categoryId) {
+      const category = categoryList.value.find(c => c.id === response.data.categoryId)
+      categorySearchValue.value = category ? category.name! : ''
+    } else {
+      categorySearchValue.value = ''
+    }
+
     // 处理日期格式
     if (response.data.startDate) {
       modalForm.startDate = dayjs(response.data.startDate) as unknown as string
@@ -465,7 +601,7 @@ const handleModalOk = () => {
         if (formData.endDate instanceof dayjs) {
           formData.endDate = (formData.endDate as unknown as Dayjs).format('YYYY-MM-DD')
         }
-        
+
         await saveFocusGoal(formData)
         message.success(`${isEdit.value ? '编辑' : '新增'}成功`)
         modalVisible.value = false
@@ -505,7 +641,7 @@ const handleBatchDelete = async () => {
     message.warning('请至少选择一条记录')
     return
   }
-  
+
   try {
     await deleteFocusGoal(selectedRowKeys.value as number[])
     message.success('删除成功')
@@ -519,9 +655,10 @@ const handleBatchDelete = async () => {
   }
 }
 
-// 页面加载时获取数据
+// 页面加载时获取数据和分类列表
 onMounted(() => {
   fetchData()
+  fetchCategoryList() // 加载分类列表
 })
 </script>
 
