@@ -22,12 +22,12 @@
             </a-col>
             <a-col>
               <a-form-item label="开始日期">
-                <a-date-picker v-model:value="searchForm.startDate" placeholder="请选择开始日期" value-format="YYYY-MM-DD" />
+                <a-date-picker v-model:value="searchForm.startDate" placeholder="请选择开始日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time />
               </a-form-item>
             </a-col>
             <a-col>
               <a-form-item label="结束日期">
-                <a-date-picker v-model:value="searchForm.endDate" placeholder="请选择结束日期" value-format="YYYY-MM-DD" />
+                <a-date-picker v-model:value="searchForm.endDate" placeholder="请选择结束日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time />
               </a-form-item>
             </a-col>
             <a-col>
@@ -53,7 +53,7 @@
       </a-card>
 
       <!-- 数据表格 -->
-      <a-table 
+      <a-table
         :columns="columns"
         :data-source="dataSource"
         :loading="loading"
@@ -86,7 +86,7 @@
                 <span v-if="selectedRowKeys && selectedRowKeys.length > 0" style="margin-left: 4px"> {{selectedRowKeys.length}} 项</span>
               </a-button>
             </a-popconfirm>
-            
+
             <!-- 表格设置 -->
             <table-setting v-model="columns"/>
           </a-flex>
@@ -103,7 +103,7 @@
             <span v-else>{{ text }}</span>
           </template>
           <template v-else-if="column.key === 'startDate' || column.key === 'endDate'">
-            {{ text ? dayjs(text).format('YYYY-MM-DD') : '' }}
+            {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '' }}
           </template>
           <template v-else-if="column.key === 'finalProgress'">
             <a-progress :percent="text" :show-info="false" />
@@ -160,7 +160,7 @@
           <a-typography-title :level="4">{{ modalTitle }}</a-typography-title>
         </div>
       </template>
-      
+
       <a-form
         ref="modalFormRef"
         :model="modalForm"
@@ -250,12 +250,12 @@
         <a-row>
           <a-col :span="12">
             <a-form-item label="开始日期" :label-col="{span: 8}" name="startDate">
-              <a-date-picker v-model:value="modalForm.startDate" placeholder="请选择开始日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <a-date-picker v-model:value="modalForm.startDate" placeholder="请选择开始日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
             </a-form-item>
           </a-col>
           <a-col :span="12">
             <a-form-item label="结束日期" :label-col="{span: 8}" name="endDate">
-              <a-date-picker v-model:value="modalForm.endDate" placeholder="请选择结束日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <a-date-picker v-model:value="modalForm.endDate" placeholder="请选择结束日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
             </a-form-item>
           </a-col>
         </a-row>
@@ -378,13 +378,13 @@ const columns = ref([
     title: '开始日期',
     dataIndex: 'startDate',
     key: 'startDate',
-    width: 120
+    width: 160
   },
   {
     title: '结束日期',
     dataIndex: 'endDate',
     key: 'endDate',
-    width: 120
+    width: 160
   },
   {
     title: '进度',
@@ -734,10 +734,10 @@ const handleModalOk = () => {
         // 处理日期格式
         const formData = { ...modalForm }
         if (formData.startDate instanceof dayjs) {
-          formData.startDate = (formData.startDate as unknown as Dayjs).format('YYYY-MM-DD')
+          formData.startDate = (formData.startDate as unknown as Dayjs).format('YYYY-MM-DD HH:mm:ss')
         }
         if (formData.endDate instanceof dayjs) {
-          formData.endDate = (formData.endDate as unknown as Dayjs).format('YYYY-MM-DD')
+          formData.endDate = (formData.endDate as unknown as Dayjs).format('YYYY-MM-DD HH:mm:ss')
         }
 
         // 添加标签ID（转换为字符串数组）
