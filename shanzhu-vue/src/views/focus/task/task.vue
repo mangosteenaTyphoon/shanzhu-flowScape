@@ -392,7 +392,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onActivated } from 'vue'
 import { message, Modal, Empty } from 'ant-design-vue'
 import {
   SearchOutlined,
@@ -868,6 +868,12 @@ onMounted(() => {
   fetchData()
   fetchTagList() // 加载标签列表
   fetchGoalList() // 加载目标列表
+})
+
+// 解决 keep-alive 缓存问题，每次组件激活时重新查询数据
+onActivated(() => {
+  console.log('🔄 任务页面被激活，重新查询数据...')
+  fetchData() // 重新查询任务数据
 })
 </script>
 

@@ -283,7 +283,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onActivated, computed } from 'vue'
 import { message, Modal, Empty } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import type { TableProps } from 'ant-design-vue'
@@ -804,6 +804,12 @@ onMounted(() => {
   fetchData()
   fetchCategoryList() // 加载分类列表
   fetchTagList() // 加载标签列表
+})
+
+// 解决 keep-alive 缓存问题，每次组件激活时重新查询数据
+onActivated(() => {
+  console.log('🔄 目标页面被激活，重新查询数据...')
+  fetchData() // 重新查询目标数据
 })
 </script>
 
