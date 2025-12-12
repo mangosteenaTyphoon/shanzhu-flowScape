@@ -60,7 +60,7 @@
         :pagination="false"
         :row-selection="rowSelection"
         row-key="id"
-        :scroll="{x: 1500}"
+        :scroll="{x: 'max-content'}"
       >
         <template #title>
           <a-flex :gap="8" wrap="wrap">
@@ -366,36 +366,37 @@ const columns = ref([
     title: '目标标题',
     dataIndex: 'title',
     key: 'title',
+    width: 250,
     ellipsis: true
   },
   {
     title: '状态',
     dataIndex: 'status',
     key: 'status',
-    width: 100
+    width: 90
   },
   {
     title: '开始日期',
     dataIndex: 'startDate',
     key: 'startDate',
-    width: 160
+    width: 180
   },
   {
     title: '结束日期',
     dataIndex: 'endDate',
     key: 'endDate',
-    width: 160
+    width: 180
   },
   {
     title: '进度',
     dataIndex: 'finalProgress',
     key: 'finalProgress',
-    width: 150
+    width: 120
   },
   {
     title: '操作',
     key: 'action',
-    width: '150px',
+    width: 150,
     fixed: 'right'
   }
 ])
