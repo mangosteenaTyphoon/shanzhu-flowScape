@@ -22,12 +22,12 @@
             </a-col>
             <a-col>
               <a-form-item label="计划开始日期">
-                <a-date-picker v-model:value="searchForm.planStartDate" placeholder="请选择计划开始日期" value-format="YYYY-MM-DD" />
+                <a-date-picker v-model:value="searchForm.planStartDate" placeholder="请选择计划开始日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time />
               </a-form-item>
             </a-col>
             <a-col>
               <a-form-item label="计划结束日期">
-                <a-date-picker v-model:value="searchForm.planEndDate" placeholder="请选择计划结束日期" value-format="YYYY-MM-DD" />
+                <a-date-picker v-model:value="searchForm.planEndDate" placeholder="请选择计划结束日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time />
               </a-form-item>
             </a-col>
             <a-col>
@@ -108,7 +108,7 @@
           </template>
           
           <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate'">
-            {{ text ? dayjs(text).format('YYYY-MM-DD') : '-' }}
+            {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-' }}
           </template>
           
           <template v-else-if="column.key === 'action'">
@@ -263,13 +263,13 @@
           
           <a-col :span="12">
             <a-form-item label="计划开始日期" name="planStartDate">
-              <a-date-picker v-model:value="modalForm.planStartDate" placeholder="请选择计划开始日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <a-date-picker v-model:value="modalForm.planStartDate" placeholder="请选择计划开始日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="计划结束日期" name="planEndDate">
-              <a-date-picker v-model:value="modalForm.planEndDate" placeholder="请选择计划结束日期" value-format="YYYY-MM-DD" style="width: 100%" />
+              <a-date-picker v-model:value="modalForm.planEndDate" placeholder="请选择计划结束日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
             </a-form-item>
           </a-col>
           
@@ -321,7 +321,7 @@
             <span v-else>{{ text }}</span>
           </template>
           <template v-else-if="column.key === 'startDate' || column.key === 'endDate'">
-            {{ text ? dayjs(text).format('YYYY-MM-DD') : '' }}
+            {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '' }}
           </template>
           <template v-else-if="column.key === 'action'">
             <a-button type="link" size="small" @click="() => handleSelectGoal(record)">
@@ -600,10 +600,10 @@ const handleModalOk = () => {
         const formData = { ...modalForm }
         // 处理日期格式
         if (formData.planStartDate) {
-          formData.planStartDate = dayjs(formData.planStartDate).format('YYYY-MM-DD')
+          formData.planStartDate = dayjs(formData.planStartDate).format('YYYY-MM-DD HH:mm:ss')
         }
         if (formData.planEndDate) {
-          formData.planEndDate = dayjs(formData.planEndDate).format('YYYY-MM-DD')
+          formData.planEndDate = dayjs(formData.planEndDate).format('YYYY-MM-DD HH:mm:ss')
         }
         
         // 添加标签ID（转换为字符串数组）
