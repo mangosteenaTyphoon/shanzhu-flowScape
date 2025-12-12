@@ -181,6 +181,13 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         // 设置用户ID
         focusTaskSaveDTO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
 
+        // 🚀 新增：任务状态完成时自动设置进度为100%
+        if ("completed".equals(focusTaskSaveDTO.getStatus()) || "完成".equals(focusTaskSaveDTO.getStatus())) {
+            focusTaskSaveDTO.setProgressRate(100);
+            log.info("📋 任务状态设置为完成，自动调整进度为100%: taskId={}, title={}",
+                     focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle());
+        }
+
         // 使用MapStruct转换DTO到DO
         FocusTaskDO focusTaskDO = new FocusTaskDO();
         BeanUtils.copyProperties(focusTaskSaveDTO, focusTaskDO);

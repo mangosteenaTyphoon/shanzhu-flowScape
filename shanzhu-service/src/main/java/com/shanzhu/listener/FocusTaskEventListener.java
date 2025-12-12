@@ -150,11 +150,15 @@ public class FocusTaskEventListener {
             return;
         }
         
-        // 统计任务状态
-        long completedCount = tasks.stream().filter(task -> "done".equals(task.getStatus())).count();
-        long inProgressCount = tasks.stream().filter(task -> "in_progress".equals(task.getStatus())).count();
-        long cancelledCount = tasks.stream().filter(task -> "cancelled".equals(task.getStatus())).count();
-        long todoCount = tasks.stream().filter(task -> "todo".equals(task.getStatus())).count();
+        // 统计任务状态（兼容多种状态值）
+        long completedCount = tasks.stream().filter(task ->
+                isCompletedStatus(task.getStatus())).count();
+        long inProgressCount = tasks.stream().filter(task ->
+                isInProgressStatus(task.getStatus())).count();
+        long cancelledCount = tasks.stream().filter(task ->
+                isCancelledStatus(task.getStatus())).count();
+        long todoCount = tasks.stream().filter(task ->
+                isTodoStatus(task.getStatus())).count();
         
         FocusGoalDO goal = focusGoalService.getById(goalId);
         if (goal != null) {
@@ -238,5 +242,59 @@ public class FocusTaskEventListener {
         } else {
             return "delayed_completed"; // 延期完成
         }
+    }
+
+    /**
+     * 判断是否为完成状态
+     * 支持多种状态值：completed, done, 完成, 已完成
+     */
+    private boolean isCompletedStatus(String status) {
+        return status != null && (
+            "completed".equals(status) ||
+            "done".equals(status) ||
+            "完成".equals(status) ||
+            "已完成".equals(status)
+        );
+    }
+
+    /**
+     * 判断是否为进行中状态
+     * 支持多种状态值：in_progress, progress, doing, 进行中, 执行中
+     */
+    private boolean isInProgressStatus(String status) {
+        return status != null && (
+            "in_progress".equals(status) ||
+            "progress".equals(status) ||
+            "doing".equals(status) ||
+            "进行中".equals(status) ||
+            "执行中".equals(status)
+        );
+    }
+
+    /**
+     * 判断是否为取消状态
+     * 支持多种状态值：cancelled, canceled, 取消, 已取消
+     */
+    private boolean isCancelledStatus(String status) {
+        return status != null && (
+            "cancelled".equals(status) ||
+            "canceled".equals(status) ||
+            "取消".equals(status) ||
+            "已取消".equals(status)
+        );
+    }
+
+    /**
+     * 判断是否为待办状态
+     * 支持多种状态值：todo, pending, not_started, 待办, 未开始
+     */
+    private boolean isTodoStatus(String status) {
+        return status != null && (
+            "todo".equals(status) ||
+            "pending".equals(status) ||
+            "not_started".equals(status) ||
+            "待办".equals(status) ||
+            "未开始".equals(status)
+        );
     }
 }
