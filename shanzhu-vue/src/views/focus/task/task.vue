@@ -172,9 +172,65 @@
             </a-form-item>
           </a-col>
           
-          <a-col :span="12">
-            <a-form-item label="所属目标ID" name="goalId">
-              <a-input-number v-model:value="modalForm.goalId" placeholder="请输入所属目标ID" style="width: 100%" />
+          <a-col :span="24">
+            <a-form-item label="所属目标" name="goalId">
+              <a-input-group compact>
+                <a-input
+                  :value="selectedGoalTitle"
+                  placeholder="请选择所属目标"
+                  readonly
+                  style="width: calc(100% - 80px)"
+                />
+                <a-button type="primary" @click="handleOpenGoalModal" style="width: 80px">
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
+                  选择
+                </a-button>
+              </a-input-group>
+              <div style="margin-top: 4px; color: #999; font-size: 12px">
+                💡 提示：点击"选择"按钮选择目标（不包括已完成的目标）
+              </div>
+            </a-form-item>
+          </a-col>
+
+          <a-col :span="24">
+            <a-form-item label="任务标签" name="tagIds">
+              <a-input-group compact>
+                <a-select
+                  v-model:value="selectedTagIds"
+                  mode="multiple"
+                  placeholder="请选择标签（可多选）"
+                  :options="tagList.map(t => ({ value: t.id, label: t.name }))"
+                  @change="handleTagChange"
+                  allow-clear
+                  style="width: calc(100% - 80px)"
+                  :loading="tagLoading"
+                  :show-search="true"
+                  :filter-option="(input: string, option: any) => option.label.toLowerCase().includes(input.toLowerCase())"
+                >
+                  <template #notFoundContent>
+                    <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无数据" />
+                  </template>
+                </a-select>
+                <a-button type="primary" @click="handleTagAdd" style="width: 80px" :loading="tagLoading">
+                  <template #icon>
+                    <PlusOutlined />
+                  </template>
+                  新增
+                </a-button>
+              </a-input-group>
+              <div style="margin-top: 8px">
+                <a-input
+                  v-model:value="tagSearchValue"
+                  placeholder="输入新标签名称"
+                  style="width: calc(100% - 88px); margin-right: 8px"
+                  @pressEnter="handleTagAdd"
+                />
+              </div>
+              <div style="margin-top: 4px; color: #999; font-size: 12px">
+                💡 提示：可输入新标签名称后点击"新增"按钮快速创建，支持多选
+              </div>
             </a-form-item>
           </a-col>
           
@@ -236,16 +292,55 @@
         <a-button type="primary" @click="handleModalOk" :loading="modalConfirmLoading">保 存</a-button>
       </template>
     </a-modal>
+
+    <!-- 目标选择弹窗 -->
+    <a-modal
+      v-model:open="goalModalVisible"
+      title="选择目标"
+      width="800px"
+      :footer="null"
+    >
+      <a-table
+        :columns="[
+          { title: '目标标题', dataIndex: 'title', key: 'title' },
+          { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
+          { title: '开始日期', dataIndex: 'startDate', key: 'startDate', width: 180 },
+          { title: '结束日期', dataIndex: 'endDate', key: 'endDate', width: 180 },
+          { title: '操作', key: 'action', width: 100 }
+        ]"
+        :data-source="goalList"
+        :loading="goalLoading"
+        :pagination="{ pageSize: 5 }"
+        row-key="id"
+      >
+        <template #bodyCell="{ column, record, text }">
+          <template v-if="column.key === 'status'">
+            <a-tag v-if="text === 'draft'" color="default">草稿</a-tag>
+            <a-tag v-else-if="text === 'active'" color="processing">进行中</a-tag>
+            <a-tag v-else-if="text === 'archived'" color="warning">已归档</a-tag>
+            <span v-else>{{ text }}</span>
+          </template>
+          <template v-else-if="column.key === 'startDate' || column.key === 'endDate'">
+            {{ text ? dayjs(text).format('YYYY-MM-DD') : '' }}
+          </template>
+          <template v-else-if="column.key === 'action'">
+            <a-button type="link" size="small" @click="() => handleSelectGoal(record)">
+              选择
+            </a-button>
+          </template>
+        </template>
+      </a-table>
+    </a-modal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { message, Modal } from 'ant-design-vue'
-import { 
-  SearchOutlined, 
-  RedoOutlined, 
-  PlusOutlined, 
+import { message, Modal, Empty } from 'ant-design-vue'
+import {
+  SearchOutlined,
+  RedoOutlined,
+  PlusOutlined,
   DeleteOutlined,
   EditOutlined
 } from '@ant-design/icons-vue'
@@ -253,6 +348,10 @@ import dayjs from 'dayjs'
 import type { TableProps, FormInstance } from 'ant-design-vue'
 import { FocusTask, FocusTaskQueryParams } from '@/api/focus/task/types'
 import { getFocusTaskPage, getFocusTask, saveFocusTask, deleteFocusTask } from '@/api/focus/task'
+import { listFocusTag, saveFocusTag } from '@/api/focus/tag'
+import type { FocusTag } from '@/api/focus/tag/types'
+import { listFocusGoal } from '@/api/focus/goal'
+import type { FocusGoal } from '@/api/focus/goal/types'
 import TableSetting from '@/components/table-setting/index.vue'
 
 // 搜索表单
@@ -347,6 +446,19 @@ const rowSelection: TableProps['rowSelection'] = {
 // 搜索表单引用
 const searchFormRef = ref<FormInstance>()
 
+// ========== 标签相关状态 ==========
+const tagList = ref<FocusTag[]>([])
+const tagLoading = ref<boolean>(false)
+const selectedTagIds = ref<number[]>([]) // 已选中的标签ID列表
+const tagSearchValue = ref<string>('') // 标签搜索值
+
+// ========== 目标相关状态 ==========
+const goalList = ref<FocusGoal[]>([])
+const goalLoading = ref<boolean>(false)
+const goalModalVisible = ref<boolean>(false) // 目标选择弹窗
+const selectedGoalId = ref<number | undefined>(undefined)
+const selectedGoalTitle = ref<string>('')
+
 // 模态框相关
 const modalVisible = ref<boolean>(false)
 const modalConfirmLoading = ref<boolean>(false)
@@ -431,6 +543,10 @@ const handleAdd = () => {
     progressRate: 0,
     expectedDurationSec: undefined
   })
+  selectedTagIds.value = [] // 清空标签选择
+  tagSearchValue.value = '' // 清空标签搜索值
+  selectedGoalId.value = undefined // 清空目标选择
+  selectedGoalTitle.value = '' // 清空目标标题
   modalVisible.value = true
 }
 
@@ -443,6 +559,24 @@ const handleEdit = async (record: FocusTask) => {
   try {
     const response = await getFocusTask(record.id!)
     Object.assign(modalForm, response.data)
+
+    // 设置已选中的标签
+    if (response.data.tagIds && response.data.tagIds.length > 0) {
+      selectedTagIds.value = response.data.tagIds.map((id: string) => Number(id))
+    } else {
+      selectedTagIds.value = []
+    }
+
+    // 设置目标信息
+    if (response.data.goalId) {
+      selectedGoalId.value = response.data.goalId
+      const goal = goalList.value.find(g => g.id === response.data.goalId)
+      selectedGoalTitle.value = goal ? goal.title || '' : ''
+    } else {
+      selectedGoalId.value = undefined
+      selectedGoalTitle.value = ''
+    }
+
     // 处理日期格式
     if (response.data.planStartDate) {
       modalForm.planStartDate = dayjs(response.data.planStartDate) as unknown as string
@@ -472,6 +606,9 @@ const handleModalOk = () => {
           formData.planEndDate = dayjs(formData.planEndDate).format('YYYY-MM-DD')
         }
         
+        // 添加标签ID（转换为字符串数组）
+        formData.tagIds = selectedTagIds.value.map(id => String(id))
+
         const result = await saveFocusTask(formData)
         if (result.code === 200 && result.data) {
           message.success(`${isEdit.value ? '编辑' : '新增'}成功`)
@@ -533,9 +670,112 @@ const handleBatchDelete = () => {
   handleDelete(selectedRowKeys.value)
 }
 
+// 获取标签列表
+const fetchTagList = async () => {
+  try {
+    tagLoading.value = true
+    const response = await listFocusTag({})
+    tagList.value = response.data || []
+  } catch (err) {
+    console.error('获取标签列表失败:', err)
+  } finally {
+    tagLoading.value = false
+  }
+}
+
+// 获取目标列表（排除已完成状态）
+const fetchGoalList = async () => {
+  try {
+    goalLoading.value = true
+    const response = await listFocusGoal({})
+    // 过滤掉已完成状态的目标
+    goalList.value = (response.data || []).filter((goal: FocusGoal) => goal.status !== 'completed')
+  } catch (err) {
+    console.error('获取目标列表失败:', err)
+  } finally {
+    goalLoading.value = false
+  }
+}
+
+// 标签选择变化
+const handleTagChange = (values: number[]) => {
+  selectedTagIds.value = values
+}
+
+// 快速新增标签
+const handleTagAdd = async () => {
+  if (!tagSearchValue.value || tagSearchValue.value.trim() === '') {
+    message.warning('请输入标签名称')
+    return
+  }
+
+  // 检查是否已存在
+  const existTag = tagList.value.find(
+    t => t.name === tagSearchValue.value.trim()
+  )
+  if (existTag) {
+    // 如果已存在且未选中，则自动选中
+    if (!selectedTagIds.value.includes(existTag.id!)) {
+      selectedTagIds.value.push(existTag.id!)
+    }
+    tagSearchValue.value = ''
+    message.info('该标签已存在，已自动选择')
+    return
+  }
+
+  try {
+    tagLoading.value = true
+    const newTag: FocusTag = {
+      name: tagSearchValue.value.trim(),
+      color: '#1890ff'
+    }
+
+    const response = await saveFocusTag(newTag)
+
+    // 检查响应状态码
+    if (response.code === 200) {
+      message.success('标签创建成功')
+
+      // 重新加载标签列表
+      await fetchTagList()
+
+      // 自动选择新创建的标签
+      const created = tagList.value.find(t => t.name === newTag.name)
+      if (created && !selectedTagIds.value.includes(created.id!)) {
+        selectedTagIds.value.push(created.id!)
+      }
+
+      // 清空搜索值
+      tagSearchValue.value = ''
+    } else {
+      message.error(response.msg || '创建标签失败')
+    }
+  } catch (err) {
+    console.error('创建标签失败:', err)
+    message.error('创建标签失败')
+  } finally {
+    tagLoading.value = false
+  }
+}
+
+// 打开目标选择弹窗
+const handleOpenGoalModal = () => {
+  goalModalVisible.value = true
+}
+
+// 选择目标
+const handleSelectGoal = (goal: FocusGoal) => {
+  selectedGoalId.value = goal.id
+  selectedGoalTitle.value = goal.title || ''
+  modalForm.goalId = goal.id
+  goalModalVisible.value = false
+}
+
 // 初始化数据
 onMounted(() => {
   fetchData()
+  fetchTagList() // 加载标签列表
+  fetchGoalList() // 加载目标列表
 })
 </script>
 
