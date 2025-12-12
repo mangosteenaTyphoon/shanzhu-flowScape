@@ -89,11 +89,68 @@
           </template>
           
           <template v-else-if="column.key === 'status'">
-            <a-tag v-if="text === 'todo'" color="default">待办</a-tag>
-            <a-tag v-else-if="text === 'in_progress'" color="processing">进行中</a-tag>
-            <a-tag v-else-if="text === 'done'" color="success">已完成</a-tag>
-            <a-tag v-else-if="text === 'cancelled'" color="error">已取消</a-tag>
-            <span v-else>{{ text }}</span>
+            <div class="status-select-wrapper">
+              <a-select
+                :value="text"
+                style="width: 120px"
+                size="small"
+                @change="(value: string) => handleStatusChange(record, value)"
+                :bordered="false"
+              >
+                <a-select-option value="todo">
+                  <div style="display: flex; align-items: center;">
+                    <a-tag color="default" style="margin: 0; border-radius: 4px;">待办</a-tag>
+                  </div>
+                </a-select-option>
+                <a-select-option value="in_progress">
+                  <div style="display: flex; align-items: center;">
+                    <a-tag color="processing" style="margin: 0; border-radius: 4px;">进行中</a-tag>
+                  </div>
+                </a-select-option>
+                <a-select-option value="done">
+                  <div style="display: flex; align-items: center;">
+                    <a-tag color="success" style="margin: 0; border-radius: 4px;">已完成</a-tag>
+                  </div>
+                </a-select-option>
+                <a-select-option value="cancelled">
+                  <div style="display: flex; align-items: center;">
+                    <a-tag color="error" style="margin: 0; border-radius: 4px;">已取消</a-tag>
+                  </div>
+                </a-select-option>
+              </a-select>
+
+              <!-- 自定义显示当前选中的状态 -->
+              <div class="status-display" @click="$event.stopPropagation()">
+                <a-tag
+                  v-if="text === 'todo'"
+                  color="default"
+                  style="margin: 0; cursor: pointer;"
+                >
+                  待办
+                </a-tag>
+                <a-tag
+                  v-else-if="text === 'in_progress'"
+                  color="processing"
+                  style="margin: 0; cursor: pointer;"
+                >
+                  进行中
+                </a-tag>
+                <a-tag
+                  v-else-if="text === 'done'"
+                  color="success"
+                  style="margin: 0; cursor: pointer;"
+                >
+                  已完成
+                </a-tag>
+                <a-tag
+                  v-else-if="text === 'cancelled'"
+                  color="error"
+                  style="margin: 0; cursor: pointer;"
+                >
+                  已取消
+                </a-tag>
+              </div>
+            </div>
           </template>
           
           <template v-else-if="column.key === 'priority'">
@@ -771,6 +828,41 @@ const handleSelectGoal = (goal: FocusGoal) => {
   goalModalVisible.value = false
 }
 
+// 快速修改任务状态
+const handleStatusChange = async (record: FocusTask, newStatus: string) => {
+  try {
+    // 构造更新数据，只更新状态
+    const updateData: FocusTask = {
+      id: record.id,
+      status: newStatus,
+      title: record.title,
+      goalId: record.goalId,
+      weight: record.weight,
+      priority: record.priority,
+      planStartDate: record.planStartDate,
+      planEndDate: record.planEndDate,
+      progressRate: record.progressRate,
+      expectedDurationSec: record.expectedDurationSec
+    }
+
+    const result = await saveFocusTask(updateData)
+    if (result.code === 200 && result.data) {
+      message.success('状态更新成功')
+      // 更新本地数据，避免重新加载整个列表
+      record.status = newStatus
+    } else {
+      message.error(result.msg || '状态更新失败')
+      // 失败时刷新数据
+      fetchData()
+    }
+  } catch (err) {
+    console.error('更新任务状态失败:', err)
+    message.error('状态更新失败')
+    // 失败时刷新数据
+    fetchData()
+  }
+}
+
 // 初始化数据
 onMounted(() => {
   fetchData()
@@ -782,5 +874,41 @@ onMounted(() => {
 <style scoped lang="less">
 .default-input-width {
   width: 160px;
+}
+
+.status-select-wrapper {
+  position: relative;
+  width: 120px;
+
+  .ant-select {
+    opacity: 0;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+  }
+
+  .status-display {
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    height: 24px;
+
+    .ant-tag {
+      user-select: none;
+    }
+  }
+
+  &:hover {
+    .status-display .ant-tag {
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transform: translateY(-1px);
+      transition: all 0.2s ease;
+    }
+  }
 }
 </style>
