@@ -17,6 +17,8 @@ import com.shanzhu.service.focus.FocusTagRelService;
 import com.shanzhu.service.focus.FocusTagService;
 import com.shanzhu.service.focus.FocusTaskService;
 import com.shanzhu.utils.security.LoginUserContext;
+import com.shanzhu.event.FocusTaskChangeEvent;
+import com.shanzhu.utils.spring.SpringUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -170,6 +172,12 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean save(FocusTaskSaveDTO focusTaskSaveDTO) {
+        // 获取旧任务数据（用于对比变化）
+        FocusTaskDO oldTask = null;
+        if (focusTaskSaveDTO.getId() != null) {
+            oldTask = this.getById(focusTaskSaveDTO.getId());
+        }
+
         // 设置用户ID
         focusTaskSaveDTO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
 
@@ -208,6 +216,9 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         // 如果保存成功，处理标签关联关系
         if (result) {
             createTagRelations(focusTaskDO.getId(), focusTaskSaveDTO.getTagIds());
+
+            // 🚀 新增：发布任务变更事件
+            publishTaskChangeEvent(focusTaskSaveDTO, oldTask);
         }
 
         return result;
@@ -251,10 +262,94 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
 
     @Override
     public void deleteByIds(List<Long> ids) {
+        // 🚀 修改：删除前获取任务信息，用于发布事件
+        List<FocusTaskDO> tasksToDelete = this.listByIds(ids);
+
         QueryWrapper<FocusTaskDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda()
                 .in(FocusTaskDO::getId, ids)
                 .eq(FocusTaskDO::getUserId, LoginUserContext.getUserId());
         this.remove(queryWrapper);
+
+        // 🚀 新增：发布删除事件
+        publishTaskDeleteEvents(tasksToDelete);
+    }
+
+    /**
+     * 🚀 新增：发布任务变更事件的方法
+     */
+    private void publishTaskChangeEvent(FocusTaskSaveDTO newTask, FocusTaskDO oldTask) {
+        if (newTask.getGoalId() == null) {
+            return; // 没有关联目标，不需要发布事件
+        }
+
+        try {
+            FocusTaskChangeEvent event;
+
+            if (oldTask == null) {
+                // 新增任务
+                event = FocusTaskChangeEvent.createEvent(
+                    this,
+                    newTask.getId(),
+                    newTask.getGoalId(),
+                    newTask.getProgressRate(),
+                    newTask.getActualConsumedSec(),
+                    newTask.getStatus()
+                );
+            } else {
+                // 更新任务
+                event = FocusTaskChangeEvent.updateEvent(
+                    this,
+                    newTask.getId(),
+                    newTask.getGoalId(),
+                    oldTask.getProgressRate(),
+                    newTask.getProgressRate(),
+                    oldTask.getActualConsumedSec(),
+                    newTask.getActualConsumedSec(),
+                    oldTask.getStatus(),
+                    newTask.getStatus()
+                );
+            }
+
+            // 发布事件
+            SpringUtils.getApplicationContext().publishEvent(event);
+
+            log.debug("📤 任务变更事件已发布: taskId={}, goalId={}, type={}",
+                    newTask.getId(), newTask.getGoalId(), oldTask == null ? "CREATE" : "UPDATE");
+
+        } catch (Exception e) {
+            log.error("❌ 发布任务变更事件失败: taskId={}, goalId={}, error={}",
+                     newTask.getId(), newTask.getGoalId(), e.getMessage(), e);
+            // 事件发布失败不影响主业务
+        }
+    }
+
+    /**
+     * 🚀 新增：发布任务删除事件的方法
+     */
+    private void publishTaskDeleteEvents(List<FocusTaskDO> deletedTasks) {
+        for (FocusTaskDO task : deletedTasks) {
+            if (task.getGoalId() != null) {
+                try {
+                    FocusTaskChangeEvent event = FocusTaskChangeEvent.deleteEvent(
+                        this,
+                        task.getId(),
+                        task.getGoalId(),
+                        task.getProgressRate(),
+                        task.getActualConsumedSec(),
+                        task.getStatus()
+                    );
+
+                    SpringUtils.getApplicationContext().publishEvent(event);
+
+                    log.debug("📤 任务删除事件已发布: taskId={}, goalId={}",
+                             task.getId(), task.getGoalId());
+
+                } catch (Exception e) {
+                    log.error("❌ 发布任务删除事件失败: taskId={}, goalId={}, error={}",
+                             task.getId(), task.getGoalId(), e.getMessage(), e);
+                }
+            }
+        }
     }
 }
