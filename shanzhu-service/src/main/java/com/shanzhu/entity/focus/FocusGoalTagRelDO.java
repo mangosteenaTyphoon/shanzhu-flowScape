@@ -9,15 +9,13 @@ import lombok.*;
  */
 @TableName("biz_focus_goal_tag_rel")
 @Data
-@EqualsAndHashCode(callSuper = true)
-@ToString(callSuper = true)
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FocusGoalTagRelDO extends BaseEntity {
+public class FocusGoalTagRelDO  {
     
     /**
-     * 目标ID (逻辑关联到 biz_focus_goal.id)
+     * 目标ID
      */
     private Long goalId;
     

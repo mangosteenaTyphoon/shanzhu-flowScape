@@ -42,12 +42,12 @@ public class FocusGoalVO {
     /**
      * 开始日期
      */
-    private LocalDate startDate;
+    private LocalDateTime startDate;
 
     /**
      * 结束日期
      */
-    private LocalDate endDate;
+    private LocalDateTime endDate;
 
     /**
      * 目标状态

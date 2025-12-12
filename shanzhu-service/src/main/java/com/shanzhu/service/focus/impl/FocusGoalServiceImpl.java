@@ -160,7 +160,6 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
         return this.getOne(queryWrapper);
     }
 
-    // 整体逻辑 先新增 目标 再新增 标签关联 然后新增 分类关联
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean save(FocusGoalSaveDTO focusGoalSaveDTO) {
