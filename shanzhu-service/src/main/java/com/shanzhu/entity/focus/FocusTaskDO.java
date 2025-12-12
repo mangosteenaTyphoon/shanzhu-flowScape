@@ -3,6 +3,7 @@ package com.shanzhu.entity.focus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+
 import com.shanzhu.model.BaseEntity;
 import lombok.*;
 
@@ -45,22 +46,22 @@ public class FocusTaskDO extends BaseEntity {
     /**
      * 计划开始日期
      */
-    private LocalDate planStartDate;
+    private LocalDateTime planStartDate;
 
     /**
      * 计划结束日期
      */
-    private LocalDate planEndDate;
+    private LocalDateTime planEndDate;
 
     /**
      * 实际开始日期
      */
-    private LocalDate actualStartDate;
+    private LocalDateTime actualStartDate;
 
     /**
      * 实际结束日期
      */
-    private LocalDate actualEndDate;
+    private LocalDateTime actualEndDate;
 
     /**
      * 进度百分比 (0-100)

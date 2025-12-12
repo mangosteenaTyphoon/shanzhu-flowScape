@@ -37,22 +37,22 @@ public class FocusTaskVO {
     /**
      * 计划开始日期
      */
-    private LocalDate planStartDate;
+    private LocalDateTime planStartDate;
 
     /**
      * 计划结束日期
      */
-    private LocalDate planEndDate;
+    private LocalDateTime planEndDate;
 
     /**
      * 实际开始日期
      */
-    private LocalDate actualStartDate;
+    private LocalDateTime actualStartDate;
 
     /**
      * 实际结束日期
      */
-    private LocalDate actualEndDate;
+    private LocalDateTime actualEndDate;
 
     /**
      * 进度百分比 (0-100)
@@ -83,16 +83,6 @@ public class FocusTaskVO {
      * 实际消耗时间（秒）
      */
     private Integer actualConsumedSec;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedAt;
 
     // ============ 以下为额外的展示字段 ============
 

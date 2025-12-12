@@ -1,6 +1,6 @@
 package com.shanzhu.model.focus.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
+
 import lombok.Data;
 
 import java.io.Serial;
@@ -39,13 +39,11 @@ public class FocusGoalSaveDTO implements Serializable {
     /**
      * 开始日期
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime startDate;
 
     /**
      * 结束日期
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime endDate;
 
     /**

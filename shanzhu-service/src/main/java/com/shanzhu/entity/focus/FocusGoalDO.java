@@ -3,7 +3,7 @@ package com.shanzhu.entity.focus;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.fasterxml.jackson.annotation.JsonFormat;
+
 import com.shanzhu.model.BaseEntity;
 import lombok.*;
 
@@ -51,13 +51,11 @@ public class FocusGoalDO extends BaseEntity {
     /**
      * 开始日期
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime startDate;
 
     /**
      * 结束日期
      */
-    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private LocalDateTime endDate;
 
     /**

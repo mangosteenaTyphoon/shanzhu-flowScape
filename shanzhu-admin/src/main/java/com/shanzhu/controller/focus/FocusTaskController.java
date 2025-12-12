@@ -5,6 +5,7 @@ import com.shanzhu.annotation.Log;
 import com.shanzhu.entity.focus.FocusTaskDO;
 import com.shanzhu.enums.LogTypeEnum;
 import com.shanzhu.model.focus.dto.FocusTaskDTO;
+import com.shanzhu.model.focus.dto.FocusTaskSaveDTO;
 import com.shanzhu.model.focus.vo.FocusTaskVO;
 import com.shanzhu.model.web.ApiResponseModel;
 import com.shanzhu.model.web.basecontroller.ApiResponseController;
@@ -63,7 +64,7 @@ public class FocusTaskController extends ApiResponseController {
     @Operation(summary = "保存专注任务")
     @PostMapping
     @Log(description = "保存专注任务", type = LogTypeEnum.SAVE)
-    public ApiResponseModel<Boolean> save(@RequestBody @Validated FocusTaskDO focusTask) {
+    public ApiResponseModel<Boolean> save(@RequestBody @Validated FocusTaskSaveDTO focusTask) {
         return success(focusTaskService.save(focusTask));
     }
     
