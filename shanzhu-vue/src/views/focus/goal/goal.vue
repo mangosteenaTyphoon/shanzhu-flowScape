@@ -93,7 +93,9 @@
         </template>
         <template #bodyCell="{ column, record, text }">
           <template v-if="column.key === 'title'">
-            <a-typography-text ellipsis>{{ text }}</a-typography-text>
+            <a-tooltip placement="topLeft" :title="record.description || '暂无描述'">
+              <a-typography-text ellipsis>{{ text }}</a-typography-text>
+            </a-tooltip>
           </template>
           <template v-else-if="column.key === 'status'">
             <a-tag v-if="text === 'draft'" color="default">草稿</a-tag>
