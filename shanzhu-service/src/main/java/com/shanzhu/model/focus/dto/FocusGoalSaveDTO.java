@@ -1,23 +1,20 @@
 package com.shanzhu.model.focus.dto;
 
-import com.baomidou.mybatisplus.annotation.IdType;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.shanzhu.entity.focus.FocusGoalDO;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-
 
 @Data
 public class FocusGoalSaveDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    @TableId(type = IdType.AUTO)
+    /**
+     * 目标ID（用于更新操作）
+     */
     private Long id;
     /**
      * 用户ID
@@ -42,12 +39,14 @@ public class FocusGoalSaveDTO implements Serializable {
     /**
      * 开始日期
      */
-    private LocalDate startDate;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime startDate;
 
     /**
      * 结束日期
      */
-    private LocalDate endDate;
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
+    private LocalDateTime endDate;
 
     /**
      * 目标状态 (draft: 草稿, active: 进行中, completed: 已完成, archived: 已归档)
@@ -85,14 +84,7 @@ public class FocusGoalSaveDTO implements Serializable {
     private Integer overdueCompletionTimeSec;
 
     /**
-     * 创建时间
+     * 标签ID数组
      */
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedAt;
-
-    private String[]  tagIds;
+    private String[] tagIds;
 }

@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.shanzhu.convert.focus.FocusGoalConvert;
 import com.shanzhu.entity.focus.FocusCategoryDO;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTagDO;
@@ -20,6 +19,7 @@ import com.shanzhu.service.focus.FocusTagService;
 import com.shanzhu.utils.security.LoginUserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,8 +35,6 @@ import java.util.stream.Collectors;
 @Service
 public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoalDO> implements FocusGoalService {
 
-    @Resource
-    private FocusGoalConvert focusGoalConvert;
 
     @Resource
     private FocusTagRelService focusTagRelService;
@@ -87,7 +85,8 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
 
 
         // 复制基本属性
-        FocusGoalVO vo = focusGoalConvert.convertToVo(goalDO);
+        FocusGoalVO vo = new FocusGoalVO();
+        BeanUtils.copyProperties(goalDO, vo);
 
         // 填充标签信息
         List<Long> tagIds = focusTagRelService.queryTagIdsByEntityIdAndType(goalDO.getId(), "goal");
@@ -165,10 +164,17 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean save(FocusGoalSaveDTO focusGoalSaveDTO) {
-        // 设置用户ID
-        focusGoalSaveDTO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
+        // 获取并验证用户ID
+        String userId = LoginUserContext.getUserId();
+        if (userId == null || userId.isEmpty()) {
+            log.error("保存专注目标失败：无法获取当前登录用户ID");
+            throw new RuntimeException("用户未登录或登录已过期，请重新登录");
+        }
 
-        FocusGoalDO focusGoalDO = focusGoalConvert.convertToDo(focusGoalSaveDTO);
+        // 设置用户ID
+        focusGoalSaveDTO.setUserId(Long.valueOf(userId));
+        FocusGoalDO focusGoalDO = new FocusGoalDO();
+        BeanUtils.copyProperties(focusGoalSaveDTO, focusGoalDO);
 
         boolean result = false;
         if (focusGoalSaveDTO.getId() == null) {

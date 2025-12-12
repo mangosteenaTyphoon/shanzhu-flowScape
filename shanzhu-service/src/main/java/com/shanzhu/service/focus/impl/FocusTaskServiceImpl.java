@@ -4,7 +4,6 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.shanzhu.convert.focus.FocusTaskConvert;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTagDO;
 import com.shanzhu.entity.focus.FocusTaskDO;
@@ -35,9 +34,6 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTaskDO> implements FocusTaskService {
-
-    @Resource
-    private FocusTaskConvert focusTaskConvert;
 
     @Resource
     private FocusTagRelService focusTagRelService;
@@ -91,7 +87,8 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
     private FocusTaskVO convertToVO(FocusTaskDO taskDO) {
 
         // 复制基本属性
-        FocusTaskVO vo = focusTaskConvert.convertToVo(taskDO);
+        FocusTaskVO vo = new FocusTaskVO();
+        BeanUtils.copyProperties(taskDO, vo);
 
         // 填充标签信息
         List<Long> tagIds = focusTagRelService.queryTagIdsByEntityIdAndType(taskDO.getId(), "task");
@@ -177,7 +174,8 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         focusTaskSaveDTO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
 
         // 使用MapStruct转换DTO到DO
-        FocusTaskDO focusTaskDO = focusTaskConvert.convertToDo(focusTaskSaveDTO);
+        FocusTaskDO focusTaskDO = new FocusTaskDO();
+        BeanUtils.copyProperties(focusTaskSaveDTO, focusTaskDO);
 
         boolean result = false;
         if (focusTaskSaveDTO.getId() == null) {
