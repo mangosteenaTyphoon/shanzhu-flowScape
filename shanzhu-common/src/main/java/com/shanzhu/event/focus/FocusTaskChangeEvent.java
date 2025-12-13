@@ -1,4 +1,4 @@
-package com.shanzhu.event;
+package com.shanzhu.event.focus;
 
 import lombok.Getter;
 import org.springframework.context.ApplicationEvent;

@@ -17,7 +17,7 @@ import com.shanzhu.service.focus.FocusTagRelService;
 import com.shanzhu.service.focus.FocusTagService;
 import com.shanzhu.service.focus.FocusTaskService;
 import com.shanzhu.utils.security.LoginUserContext;
-import com.shanzhu.event.FocusTaskChangeEvent;
+import com.shanzhu.event.focus.FocusTaskChangeEvent;
 import com.shanzhu.utils.spring.SpringUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;

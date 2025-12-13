@@ -1,9 +1,9 @@
-package com.shanzhu.listener;
+package com.shanzhu.listener.focus;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTaskDO;
-import com.shanzhu.event.FocusTaskChangeEvent;
+import com.shanzhu.event.focus.FocusTaskChangeEvent;
 import com.shanzhu.service.focus.FocusGoalService;
 import com.shanzhu.service.focus.FocusTaskService;
 import jakarta.annotation.Resource;
@@ -38,7 +38,7 @@ public class FocusTaskEventListener {
     @Transactional(rollbackFor = Exception.class)
     public void handleTaskChangeEvent(FocusTaskChangeEvent event) {
         try {
-            log.info("📢 收到任务变更事件: taskId={}, goalId={}, changeType={}", 
+            log.info("收到任务变更事件: taskId={}, goalId={}, changeType={}",
                     event.getTaskId(), event.getGoalId(), event.getChangeType());
             
             if (event.getGoalId() != null) {
@@ -48,10 +48,10 @@ public class FocusTaskEventListener {
                 // 更新目标状态
                 updateGoalStatus(event.getGoalId());
                 
-                log.info("✅ 目标自动同步完成: goalId={}", event.getGoalId());
+                log.info("目标自动同步完成: goalId={}", event.getGoalId());
             }
         } catch (Exception e) {
-            log.error("❌ 处理任务变更事件失败: taskId={}, goalId={}, error={}", 
+            log.error("处理任务变更事件失败: taskId={}, goalId={}, error={}",
                      event.getTaskId(), event.getGoalId(), e.getMessage(), e);
         }
     }
