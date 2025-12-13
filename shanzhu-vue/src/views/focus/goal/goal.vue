@@ -262,8 +262,12 @@
           </a-col>
         </a-row>
         <!-- 状态不可选择，通过按钮控制 -->
-        <a-form-item label="最终进度" name="finalProgress">
-          <a-slider v-model:value="modalForm.finalProgress" :min="0" :max="100" />
+        <!-- 进度由子任务自动计算，不可手动编辑 -->
+        <a-form-item label="目标进度">
+          <a-progress :percent="modalForm.finalProgress || 0" />
+          <div style="margin-top: 4px; color: #999; font-size: 12px">
+            💡 提示：进度由关联的子任务自动计算，无子任务时进度为 0%
+          </div>
         </a-form-item>
       </a-form>
 
