@@ -261,14 +261,7 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <a-form-item label="目标状态" name="status">
-          <a-select v-model:value="modalForm.status" placeholder="请选择目标状态">
-            <a-select-option value="draft">草稿</a-select-option>
-            <a-select-option value="active">进行中</a-select-option>
-            <a-select-option value="completed">已完成</a-select-option>
-            <a-select-option value="archived">已归档</a-select-option>
-          </a-select>
-        </a-form-item>
+        <!-- 状态不可选择，通过按钮控制 -->
         <a-form-item label="最终进度" name="finalProgress">
           <a-slider v-model:value="modalForm.finalProgress" :min="0" :max="100" />
         </a-form-item>
@@ -276,7 +269,14 @@
 
       <template #footer>
         <a-button @click="handleModalCancel">关 闭</a-button>
-        <a-button type="primary" @click="handleModalOk" :loading="modalConfirmLoading">保 存</a-button>
+        <!-- 新增和编辑都显示两个按钮，通过按钮控制状态 -->
+        <!-- 只有新增或草稿状态时才显示保存至草稿按钮 -->
+        <a-button v-if="canSaveAsDraft" @click="handleSaveAsDraft" :loading="modalConfirmLoading">
+          保存至草稿
+        </a-button>
+        <a-button type="primary" @click="handleSaveAsActive" :loading="modalConfirmLoading">
+          开始目标
+        </a-button>
       </template>
     </a-modal>
   </div>
@@ -657,6 +657,12 @@ const modalForm = reactive<FocusGoal>({
   finalProgress: 0
 })
 
+// 计算属性：判断是否可以保存至草稿
+// 只有新增或状态为草稿时才能保存至草稿，已开始的目标不能退回草稿
+const canSaveAsDraft = computed(() => {
+  return !isEdit.value || modalForm.status === 'draft'
+})
+
 // 表单验证规则
 const modalRules = {
   title: [{ required: true, message: '请输入目标标题', trigger: 'blur' }],
@@ -727,9 +733,9 @@ const handleEditClick = (event: MouseEvent, record: FocusGoal) => {
   handleEdit(record)
 }
 
-// 模态框确认
-const handleModalOk = () => {
-  modalFormRef.value
+// 保存目标的通用方法
+const saveGoal = async (status: string) => {
+  return modalFormRef.value
     .validate()
     .then(async () => {
       modalConfirmLoading.value = true
@@ -743,11 +749,15 @@ const handleModalOk = () => {
           formData.endDate = (formData.endDate as unknown as Dayjs).format('YYYY-MM-DD HH:mm:ss')
         }
 
+        // 设置状态
+        formData.status = status
+
         // 添加标签ID（转换为字符串数组）
         formData.tagIds = selectedTagIds.value.map(id => String(id))
 
         await saveFocusGoal(formData)
-        message.success(`${isEdit.value ? '编辑' : '新增'}成功`)
+        const statusText = status === 'draft' ? '草稿已保存' : status === 'active' ? '目标已开始' : '保存成功'
+        message.success(statusText)
         modalVisible.value = false
         fetchData()
       } catch (err) {
@@ -761,6 +771,18 @@ const handleModalOk = () => {
       // 表单验证失败
     })
 }
+
+// 保存至草稿
+const handleSaveAsDraft = () => {
+  saveGoal('draft')
+}
+
+// 开始目标（保存为进行中状态）
+const handleSaveAsActive = () => {
+  saveGoal('active')
+}
+
+
 
 // 模态框取消
 const handleModalCancel = () => {

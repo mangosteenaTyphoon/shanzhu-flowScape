@@ -740,13 +740,13 @@ const fetchTagList = async () => {
   }
 }
 
-// 获取目标列表（排除已完成状态）
+// 获取目标列表（只显示进行中的目标）
 const fetchGoalList = async () => {
   try {
     goalLoading.value = true
     const response = await listFocusGoal({})
-    // 过滤掉已完成状态的目标
-    goalList.value = (response.data || []).filter((goal: FocusGoal) => goal.status !== 'completed')
+    // 只保留进行中（active）状态的目标，过滤掉草稿、已完成、已归档等状态
+    goalList.value = (response.data || []).filter((goal: FocusGoal) => goal.status === 'active')
   } catch (err) {
     console.error('获取目标列表失败:', err)
   } finally {
