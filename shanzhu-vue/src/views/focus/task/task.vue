@@ -758,6 +758,17 @@ const handleModalOk = () => {
       modalConfirmLoading.value = true
       try {
         const formData = { ...modalForm }
+        
+        // 🔄 进度与状态同步逻辑
+        // 1. 如果状态为已完成，进度自动设为 100%
+        if (formData.status === 'done') {
+          formData.progressRate = 100
+        }
+        // 2. 如果进度为 100%，状态自动设为已完成
+        if (formData.progressRate === 100 && formData.status !== 'done' && formData.status !== 'cancelled') {
+          formData.status = 'done'
+        }
+        
         // 处理日期格式
         if (formData.planStartDate) {
           formData.planStartDate = dayjs(formData.planStartDate).format('YYYY-MM-DD HH:mm:ss')
@@ -1008,9 +1019,13 @@ const updateTaskStatus = async (record: FocusTask, newStatus: string, timeValue?
       updateData.actualStartDate = timeValue
     }
 
-    // 如果是已完成，设置实际结束时间
-    if (newStatus === 'done' && timeValue) {
-      updateData.actualEndDate = timeValue
+    // 如果是已完成，设置实际结束时间和进度 100%
+    if (newStatus === 'done') {
+      if (timeValue) {
+        updateData.actualEndDate = timeValue
+      }
+      // 🔄 状态变为已完成时，自动设置进度为 100%
+      updateData.progressRate = 100
     }
 
     const result = await saveFocusTask(updateData)
