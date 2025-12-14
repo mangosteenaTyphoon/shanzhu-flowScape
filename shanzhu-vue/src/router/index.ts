@@ -90,7 +90,22 @@ const routers = [
           visible: false,
           role: ["ROLE_admin", "ROLE_visitor"]
         }
+      },
+      // 目标详情页
+      {
+        path: '/focus/goal/detail/:id',
+        component: () => import("@/views/focus/goal/goal-detail.vue"),
+        name: 'FocusGoalDetail',
+        meta: {
+          label: "目标详情",
+          icon: "FileTextOutlined",
+          cache: false,
+          affix: false,
+          viewTab: false, // 暂时禁用标签页功能来排除问题
+          visible: false
+        }
       }
+
     ],
   },
   // login

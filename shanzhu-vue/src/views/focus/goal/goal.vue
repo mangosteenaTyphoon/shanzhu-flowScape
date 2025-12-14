@@ -126,6 +126,13 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space size="small">
+              <a-button type="link" size="small" @click="(event: MouseEvent) => handleDetailClick(event, record)">
+                <template #icon>
+                  <EyeOutlined />
+                </template>
+                详情
+              </a-button>
+              <a-divider type="vertical"/>
               <a-button type="link" size="small" @click="(event: MouseEvent) => handleEditClick(event, record)">
                 <template #icon>
                   <EditOutlined />
@@ -330,16 +337,20 @@
         </a-button>
       </template>
     </a-modal>
+
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, onMounted, onActivated, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { message, Modal, Empty } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import type { TableProps } from 'ant-design-vue'
 import type { Dayjs } from 'dayjs'
 import TableSetting from "@/components/table-setting/index.vue";
+
+const router = useRouter()
 
 // 图标引入
 import {
@@ -347,7 +358,8 @@ import {
   RedoOutlined,
   PlusOutlined,
   DeleteOutlined,
-  EditOutlined
+  EditOutlined,
+  EyeOutlined
 } from '@ant-design/icons-vue';
 
 // API引入
@@ -372,6 +384,8 @@ import {
   saveFocusTag
 } from '@/api/focus/tag'
 import type { FocusTag } from '@/api/focus/tag/types'
+
+
 
 // 数据接口定义
 interface FocusGoal {
@@ -829,8 +843,16 @@ const handleEdit = async (record: FocusGoal) => {
 
 // 处理编辑点击事件（不在模板中直接使用 await）
 const handleEditClick = (event: MouseEvent, record: FocusGoal) => {
+  console.log('点击编辑按钮，记录:', record);
   event.stopPropagation()
   handleEdit(record)
+}
+
+// 处理详情点击事件 - 跳转到详情页面
+const handleDetailClick = (event: MouseEvent, record: FocusGoal) => {
+  console.log('点击详情按钮，记录:', record);
+  event.stopPropagation()
+  router.push(`/focus/goal/detail/${record.id}`)
 }
 
 // 保存目标的通用方法
