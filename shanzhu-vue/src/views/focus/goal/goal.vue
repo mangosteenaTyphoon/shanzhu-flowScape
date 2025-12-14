@@ -110,6 +110,20 @@
           <template v-else-if="column.key === 'finalProgress'">
             <a-progress :percent="text" :show-info="false" />
           </template>
+          <template v-else-if="column.key === 'hasDelayedTasks'">
+            <a-tag v-if="text" color="error">有延期</a-tag>
+            <a-tag v-else color="success">无延期</a-tag>
+          </template>
+          <template v-else-if="column.key === 'expectedDurationSec'">
+            {{ formatDuration(text) }}
+          </template>
+          <template v-else-if="column.key === 'actualDurationSec'">
+            {{ formatDuration(text) }}
+          </template>
+          <template v-else-if="column.key === 'overdueCompletionTimeSec'">
+            <span v-if="text && text > 0" style="color: #ff4d4f">{{ formatDuration(text) }}</span>
+            <span v-else style="color: #52c41a">-</span>
+          </template>
           <template v-else-if="column.key === 'action'">
             <a-space size="small">
               <a-button type="link" size="small" @click="(event: MouseEvent) => handleEditClick(event, record)">
@@ -269,6 +283,39 @@
             💡 提示：进度由关联的子任务自动计算，无子任务时进度为 0%
           </div>
         </a-form-item>
+        <!-- 统计信息展示（只读） -->
+        <a-form-item label="延期状态">
+          <a-tag v-if="modalForm.hasDelayedTasks" color="error">有延期任务</a-tag>
+          <a-tag v-else color="success">无延期任务</a-tag>
+        </a-form-item>
+        <a-row>
+          <a-col :span="12">
+            <a-form-item label="预期时长" :label-col="{span: 8}">
+              <span>{{ formatDuration(modalForm.expectedDurationSec) }}</span>
+              <div style="margin-top: 4px; color: #999; font-size: 12px">
+                💡 所有子任务预期时长之和
+              </div>
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="实际时长" :label-col="{span: 8}">
+              <span>{{ formatDuration(modalForm.actualDurationSec) }}</span>
+              <div style="margin-top: 4px; color: #999; font-size: 12px">
+                💡 所有子任务实际时长之和
+              </div>
+            </a-form-item>
+          </a-col>
+        </a-row>
+        <a-form-item label="超期时长">
+          <span v-if="modalForm.overdueCompletionTimeSec && modalForm.overdueCompletionTimeSec > 0"
+                style="color: #ff4d4f; font-weight: bold">
+            {{ formatDuration(modalForm.overdueCompletionTimeSec) }}
+          </span>
+          <span v-else style="color: #52c41a">无超期</span>
+          <div style="margin-top: 4px; color: #999; font-size: 12px">
+            💡 实际时长 - 预期时长
+          </div>
+        </a-form-item>
       </a-form>
 
       <template #footer>
@@ -397,6 +444,30 @@ const columns = ref([
     title: '进度',
     dataIndex: 'finalProgress',
     key: 'finalProgress',
+    width: 120
+  },
+  {
+    title: '延期状态',
+    dataIndex: 'hasDelayedTasks',
+    key: 'hasDelayedTasks',
+    width: 100
+  },
+  {
+    title: '预期时长',
+    dataIndex: 'expectedDurationSec',
+    key: 'expectedDurationSec',
+    width: 120
+  },
+  {
+    title: '实际时长',
+    dataIndex: 'actualDurationSec',
+    key: 'actualDurationSec',
+    width: 120
+  },
+  {
+    title: '超期时长',
+    dataIndex: 'overdueCompletionTimeSec',
+    key: 'overdueCompletionTimeSec',
     width: 120
   },
   {
@@ -666,6 +737,30 @@ const modalForm = reactive<FocusGoal>({
 const canSaveAsDraft = computed(() => {
   return !isEdit.value || modalForm.status === 'draft'
 })
+
+// 时间格式化函数：将秒转换为可读格式
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || seconds === 0) {
+    return '0分钟'
+  }
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  const parts = []
+  if (hours > 0) {
+    parts.push(`${hours}小时`)
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}分钟`)
+  }
+  if (secs > 0 && hours === 0) { // 只有在小于1小时时才显示秒
+    parts.push(`${secs}秒`)
+  }
+
+  return parts.length > 0 ? parts.join('') : '0分钟'
+}
 
 // 表单验证规则
 const modalRules = {

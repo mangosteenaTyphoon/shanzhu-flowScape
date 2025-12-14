@@ -88,6 +88,15 @@
             <a-typography-text :content="text" :ellipsis="{ tooltip: text }" />
           </template>
           
+          <template v-else-if="column.key === 'goal'">
+            <a-typography-text
+              v-if="record.goal"
+              :content="record.goal.title || '-'"
+              :ellipsis="{ tooltip: record.goal.title }"
+            />
+            <span v-else>-</span>
+          </template>
+
           <template v-else-if="column.key === 'status'">
             <div class="status-select-wrapper">
               <a-select
@@ -299,7 +308,7 @@
           
           <a-col :span="12">
             <a-form-item label="任务状态" name="status">
-              <a-select v-model:value="modalForm.status" placeholder="请选择任务状态">
+              <a-select v-model:value="modalForm.status" placeholder="请选择任务状态" :disabled="!isEdit">
                 <a-select-option value="todo">待办</a-select-option>
                 <a-select-option value="in_progress">进行中</a-select-option>
                 <a-select-option value="done">已完成</a-select-option>
@@ -336,9 +345,29 @@
             </a-form-item>
           </a-col>
           
-          <a-col :span="12">
-            <a-form-item label="预期持续时间(秒)" name="expectedDurationSec">
-              <a-input-number v-model:value="modalForm.expectedDurationSec" placeholder="请输入预期持续时间" style="width: 100%" />
+          <!-- 实际开始时间：仅在进行中或已完成时显示 -->
+          <a-col :span="12" v-if="modalForm.status === 'in_progress' || modalForm.status === 'done'">
+            <a-form-item label="实际开始时间" name="actualStartDate">
+              <a-date-picker
+                v-model:value="modalForm.actualStartDate"
+                placeholder="请选择实际开始时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                show-time
+                style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+
+          <!-- 实际结束时间：仅在已完成时显示 -->
+          <a-col :span="12" v-if="modalForm.status === 'done'">
+            <a-form-item label="实际结束时间" name="actualEndDate">
+              <a-date-picker
+                v-model:value="modalForm.actualEndDate"
+                placeholder="请选择实际结束时间"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                show-time
+                style="width: 100%"
+              />
             </a-form-item>
           </a-col>
         </a-row>
@@ -365,7 +394,7 @@
           { title: '结束日期', dataIndex: 'endDate', key: 'endDate', width: 180 },
           { title: '操作', key: 'action', width: 100 }
         ]"
-        :data-source="goalList"
+        :data-source="goalList.filter((goal: FocusGoal) => goal.status === 'active')"
         :loading="goalLoading"
         :pagination="{ pageSize: 5 }"
         row-key="id"
@@ -442,10 +471,10 @@ const columns = ref([
     width: 200
   },
   {
-    title: '所属目标ID',
-    dataIndex: 'goalId',
-    key: 'goalId',
-    width: 120
+    title: '所属目标',
+    dataIndex: 'goal',
+    key: 'goal',
+    width: 200
   },
   {
     title: '任务状态',
@@ -530,8 +559,9 @@ const modalForm = reactive<FocusTask>({
   priority: 'medium',
   planStartDate: undefined,
   planEndDate: undefined,
-  progressRate: 0,
-  expectedDurationSec: undefined
+  actualStartDate: undefined,
+  actualEndDate: undefined,
+  progressRate: 0
 })
 
 // 表单验证规则
@@ -597,8 +627,9 @@ const handleAdd = () => {
     priority: 'medium',
     planStartDate: undefined,
     planEndDate: undefined,
-    progressRate: 0,
-    expectedDurationSec: undefined
+    actualStartDate: undefined,
+    actualEndDate: undefined,
+    progressRate: 0
   })
   selectedTagIds.value = [] // 清空标签选择
   tagSearchValue.value = '' // 清空标签搜索值
@@ -627,8 +658,15 @@ const handleEdit = async (record: FocusTask) => {
     // 设置目标信息
     if (response.data.goalId) {
       selectedGoalId.value = response.data.goalId
-      const goal = goalList.value.find(g => g.id === response.data.goalId)
-      selectedGoalTitle.value = goal ? goal.title || '' : ''
+
+      // 优先使用后端返回的 goal 对象（如果存在）
+      if (response.data.goal && response.data.goal.title) {
+        selectedGoalTitle.value = response.data.goal.title
+      } else {
+        // 否则从 goalList 中查找
+        const goal = goalList.value.find(g => g.id === response.data.goalId)
+        selectedGoalTitle.value = goal ? goal.title || '' : `目标ID: ${response.data.goalId}`
+      }
     } else {
       selectedGoalId.value = undefined
       selectedGoalTitle.value = ''
@@ -740,13 +778,13 @@ const fetchTagList = async () => {
   }
 }
 
-// 获取目标列表（只显示进行中的目标）
+// 获取目标列表（获取所有状态的目标，用于查找和回显）
 const fetchGoalList = async () => {
   try {
     goalLoading.value = true
     const response = await listFocusGoal({})
-    // 只保留进行中（active）状态的目标，过滤掉草稿、已完成、已归档等状态
-    goalList.value = (response.data || []).filter((goal: FocusGoal) => goal.status === 'active')
+    // 获取所有状态的目标（用于查找和回显）
+    goalList.value = response.data || []
   } catch (err) {
     console.error('获取目标列表失败:', err)
   } finally {
@@ -841,8 +879,9 @@ const handleStatusChange = async (record: FocusTask, newStatus: string) => {
       priority: record.priority,
       planStartDate: record.planStartDate,
       planEndDate: record.planEndDate,
-      progressRate: record.progressRate,
-      expectedDurationSec: record.expectedDurationSec
+      actualStartDate: record.actualStartDate,
+      actualEndDate: record.actualEndDate,
+      progressRate: record.progressRate
     }
 
     const result = await saveFocusTask(updateData)

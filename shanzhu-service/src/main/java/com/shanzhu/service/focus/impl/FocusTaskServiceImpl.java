@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTagDO;
 import com.shanzhu.entity.focus.FocusTaskDO;
+import com.shanzhu.event.focus.FocusTaskChangeEvent;
 import com.shanzhu.mapper.focus.FocusTaskMapper;
 import com.shanzhu.model.focus.dto.FocusTagRelDTO;
 import com.shanzhu.model.focus.dto.FocusTaskDTO;
@@ -17,7 +18,6 @@ import com.shanzhu.service.focus.FocusTagRelService;
 import com.shanzhu.service.focus.FocusTagService;
 import com.shanzhu.service.focus.FocusTaskService;
 import com.shanzhu.utils.security.LoginUserContext;
-import com.shanzhu.event.focus.FocusTaskChangeEvent;
 import com.shanzhu.utils.spring.SpringUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -185,7 +186,23 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         if ("completed".equals(focusTaskSaveDTO.getStatus()) || "完成".equals(focusTaskSaveDTO.getStatus())) {
             focusTaskSaveDTO.setProgressRate(100);
             log.info("📋 任务状态设置为完成，自动调整进度为100%: taskId={}, title={}",
-                     focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle());
+                    focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle());
+        }
+
+        // 🚀 新增：自动计算预期持续时间（基于计划开始和结束时间）
+        if (focusTaskSaveDTO.getPlanStartDate() != null && focusTaskSaveDTO.getPlanEndDate() != null) {
+            long seconds = Duration.between(focusTaskSaveDTO.getPlanStartDate(), focusTaskSaveDTO.getPlanEndDate()).getSeconds();
+            System.out.println(seconds);
+            focusTaskSaveDTO.setExpectedDurationSec((int) seconds);
+            System.out.println( focusTaskSaveDTO.getExpectedDurationSec());
+            log.debug("⏱️ 自动计算预期持续时间: {} 秒", seconds);
+        }
+
+        // 🚀 新增：自动计算实际消耗时间（基于实际开始和结束时间）
+        if (focusTaskSaveDTO.getActualStartDate() != null && focusTaskSaveDTO.getActualEndDate() != null) {
+            long seconds = Duration.between(focusTaskSaveDTO.getActualStartDate(), focusTaskSaveDTO.getActualEndDate()).getSeconds();
+            focusTaskSaveDTO.setActualConsumedSec((int) seconds);
+            log.debug("⏱️ 自动计算实际消耗时间: {} 秒", seconds);
         }
 
         // 使用MapStruct转换DTO到DO
@@ -296,25 +313,25 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
             if (oldTask == null) {
                 // 新增任务
                 event = FocusTaskChangeEvent.createEvent(
-                    this,
-                    newTask.getId(),
-                    newTask.getGoalId(),
-                    newTask.getProgressRate(),
-                    newTask.getActualConsumedSec(),
-                    newTask.getStatus()
+                        this,
+                        newTask.getId(),
+                        newTask.getGoalId(),
+                        newTask.getProgressRate(),
+                        newTask.getActualConsumedSec(),
+                        newTask.getStatus()
                 );
             } else {
                 // 更新任务
                 event = FocusTaskChangeEvent.updateEvent(
-                    this,
-                    newTask.getId(),
-                    newTask.getGoalId(),
-                    oldTask.getProgressRate(),
-                    newTask.getProgressRate(),
-                    oldTask.getActualConsumedSec(),
-                    newTask.getActualConsumedSec(),
-                    oldTask.getStatus(),
-                    newTask.getStatus()
+                        this,
+                        newTask.getId(),
+                        newTask.getGoalId(),
+                        oldTask.getProgressRate(),
+                        newTask.getProgressRate(),
+                        oldTask.getActualConsumedSec(),
+                        newTask.getActualConsumedSec(),
+                        oldTask.getStatus(),
+                        newTask.getStatus()
                 );
             }
 
@@ -326,7 +343,7 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
 
         } catch (Exception e) {
             log.error("❌ 发布任务变更事件失败: taskId={}, goalId={}, error={}",
-                     newTask.getId(), newTask.getGoalId(), e.getMessage(), e);
+                    newTask.getId(), newTask.getGoalId(), e.getMessage(), e);
             // 事件发布失败不影响主业务
         }
     }
@@ -339,22 +356,22 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
             if (task.getGoalId() != null) {
                 try {
                     FocusTaskChangeEvent event = FocusTaskChangeEvent.deleteEvent(
-                        this,
-                        task.getId(),
-                        task.getGoalId(),
-                        task.getProgressRate(),
-                        task.getActualConsumedSec(),
-                        task.getStatus()
+                            this,
+                            task.getId(),
+                            task.getGoalId(),
+                            task.getProgressRate(),
+                            task.getActualConsumedSec(),
+                            task.getStatus()
                     );
 
                     SpringUtils.getApplicationContext().publishEvent(event);
 
                     log.debug("📤 任务删除事件已发布: taskId={}, goalId={}",
-                             task.getId(), task.getGoalId());
+                            task.getId(), task.getGoalId());
 
                 } catch (Exception e) {
                     log.error("❌ 发布任务删除事件失败: taskId={}, goalId={}, error={}",
-                             task.getId(), task.getGoalId(), e.getMessage(), e);
+                            task.getId(), task.getGoalId(), e.getMessage(), e);
                 }
             }
         }
