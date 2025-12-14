@@ -417,6 +417,42 @@
         </template>
       </a-table>
     </a-modal>
+
+    <!-- 状态时间输入弹窗 -->
+    <a-modal
+      v-model:open="statusTimeModalVisible"
+      :title="statusTimeModalTitle"
+      :confirm-loading="statusTimeModalLoading"
+      @ok="handleStatusTimeModalOk"
+      @cancel="handleStatusTimeModalCancel"
+      width="400px"
+    >
+      <a-form layout="vertical">
+        <a-form-item :label="statusTimeModalTitle">
+          <a-date-picker
+            v-model:value="statusTimeValue"
+            :placeholder="'请选择' + statusTimeModalTitle"
+            value-format="YYYY-MM-DD HH:mm:ss"
+            show-time
+            style="width: 100%"
+          />
+        </a-form-item>
+        <a-alert
+          v-if="statusTimeModalTitle.includes('开始')"
+          message="任务将变更为「进行中」状态"
+          type="info"
+          show-icon
+          style="margin-top: 8px"
+        />
+        <a-alert
+          v-else
+          message="任务将变更为「已完成」状态"
+          type="success"
+          show-icon
+          style="margin-top: 8px"
+        />
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -867,10 +903,40 @@ const handleSelectGoal = (goal: FocusGoal) => {
   goalModalVisible.value = false
 }
 
+// ========== 状态时间输入弹窗相关 ==========
+const statusTimeModalVisible = ref<boolean>(false)
+const statusTimeModalLoading = ref<boolean>(false)
+const statusTimeModalTitle = ref<string>('')
+const statusTimeValue = ref<string>()
+const pendingStatusChange = ref<{ record: FocusTask, newStatus: string } | null>(null)
+
 // 快速修改任务状态
 const handleStatusChange = async (record: FocusTask, newStatus: string) => {
+  // 如果状态变为进行中，需要输入实际开始时间
+  if (newStatus === 'in_progress') {
+    statusTimeModalTitle.value = '请输入实际开始时间'
+    statusTimeValue.value = undefined
+    pendingStatusChange.value = { record, newStatus }
+    statusTimeModalVisible.value = true
+    return
+  }
+
+  // 如果状态变为已完成，需要输入实际结束时间
+  if (newStatus === 'done') {
+    statusTimeModalTitle.value = '请输入实际结束时间'
+    statusTimeValue.value = undefined
+    pendingStatusChange.value = { record, newStatus }
+    statusTimeModalVisible.value = true
+    return
+  }
+
+  // 其他状态直接更新
+  await updateTaskStatus(record, newStatus)
+}
+
+// 实际更新任务状态的方法
+const updateTaskStatus = async (record: FocusTask, newStatus: string, timeValue?: string) => {
   try {
-    // 构造更新数据，只更新状态
     const updateData: FocusTask = {
       id: record.id,
       status: newStatus,
@@ -885,22 +951,61 @@ const handleStatusChange = async (record: FocusTask, newStatus: string) => {
       progressRate: record.progressRate
     }
 
+    // 如果是进行中，设置实际开始时间
+    if (newStatus === 'in_progress' && timeValue) {
+      updateData.actualStartDate = timeValue
+    }
+
+    // 如果是已完成，设置实际结束时间
+    if (newStatus === 'done' && timeValue) {
+      updateData.actualEndDate = timeValue
+    }
+
     const result = await saveFocusTask(updateData)
     if (result.code === 200 && result.data) {
       message.success('状态更新成功')
-      // 更新本地数据，避免重新加载整个列表
-      record.status = newStatus
+      // 刷新数据以获取最新的统计信息
+      fetchData()
     } else {
       message.error(result.msg || '状态更新失败')
-      // 失败时刷新数据
       fetchData()
     }
   } catch (err) {
     console.error('更新任务状态失败:', err)
     message.error('状态更新失败')
-    // 失败时刷新数据
     fetchData()
   }
+}
+
+// 确认时间输入
+const handleStatusTimeModalOk = async () => {
+  if (!statusTimeValue.value) {
+    message.warning('请选择时间')
+    return
+  }
+
+  if (!pendingStatusChange.value) {
+    return
+  }
+
+  statusTimeModalLoading.value = true
+  try {
+    await updateTaskStatus(
+      pendingStatusChange.value.record,
+      pendingStatusChange.value.newStatus,
+      statusTimeValue.value
+    )
+    statusTimeModalVisible.value = false
+  } finally {
+    statusTimeModalLoading.value = false
+  }
+}
+
+// 取消时间输入
+const handleStatusTimeModalCancel = () => {
+  statusTimeModalVisible.value = false
+  pendingStatusChange.value = null
+  statusTimeValue.value = undefined
 }
 
 // 初始化数据
