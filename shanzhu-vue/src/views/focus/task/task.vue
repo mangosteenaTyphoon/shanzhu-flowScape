@@ -173,8 +173,12 @@
             <a-progress :percent="text" size="small" />
           </template>
 
-          <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate'">
+          <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate' || column.key === 'actualStartDate' || column.key === 'actualEndDate'">
             {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-' }}
+          </template>
+
+          <template v-else-if="column.key === 'expectedDurationSec' || column.key === 'actualConsumedSec'">
+            {{ formatDuration(text) }}
           </template>
 
           <template v-else-if="column.key === 'action'">
@@ -540,13 +544,37 @@ const columns = ref([
     title: '计划开始日期',
     dataIndex: 'planStartDate',
     key: 'planStartDate',
-    width: 130
+    width: 180
   },
   {
     title: '计划结束日期',
     dataIndex: 'planEndDate',
     key: 'planEndDate',
-    width: 130
+    width: 180
+  },
+  {
+    title: '实际开始时间',
+    dataIndex: 'actualStartDate',
+    key: 'actualStartDate',
+    width: 180
+  },
+  {
+    title: '实际结束时间',
+    dataIndex: 'actualEndDate',
+    key: 'actualEndDate',
+    width: 180
+  },
+  {
+    title: '预期时长',
+    dataIndex: 'expectedDurationSec',
+    key: 'expectedDurationSec',
+    width: 120
+  },
+  {
+    title: '实际消耗',
+    dataIndex: 'actualConsumedSec',
+    key: 'actualConsumedSec',
+    width: 120
   },
   {
     title: '操作',
@@ -901,6 +929,30 @@ const handleSelectGoal = (goal: FocusGoal) => {
   selectedGoalTitle.value = goal.title || ''
   modalForm.goalId = goal.id
   goalModalVisible.value = false
+}
+
+// 时间格式化函数：将秒转换为可读格式
+const formatDuration = (seconds?: number): string => {
+  if (!seconds || seconds === 0) {
+    return '-'
+  }
+
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  const secs = seconds % 60
+
+  const parts = []
+  if (hours > 0) {
+    parts.push(`${hours}小时`)
+  }
+  if (minutes > 0) {
+    parts.push(`${minutes}分钟`)
+  }
+  if (secs > 0 && hours === 0) { // 只有在小于1小时时才显示秒
+    parts.push(`${secs}秒`)
+  }
+
+  return parts.length > 0 ? parts.join('') : '-'
 }
 
 // ========== 状态时间输入弹窗相关 ==========
