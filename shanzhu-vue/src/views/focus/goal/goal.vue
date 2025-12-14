@@ -774,6 +774,7 @@ const handleAdd = () => {
   modalTitle.value = '新增专注目标'
   isEdit.value = false
   Object.assign(modalForm, {
+    id: undefined,
     title: '',
     description: '',
     categoryId: undefined,

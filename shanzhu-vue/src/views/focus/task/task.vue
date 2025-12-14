@@ -77,17 +77,17 @@
               删 除
               <span v-if="selectedRowKeys && selectedRowKeys.length > 0" style="margin-left: 4px"> {{ selectedRowKeys.length }} 项</span>
             </a-button>
-            
+
             <!-- 表格设置 -->
             <table-setting v-model="columns" />
           </a-flex>
         </template>
-        
+
         <template #bodyCell="{ column, record, text }">
           <template v-if="column.key === 'title'">
             <a-typography-text :content="text" :ellipsis="{ tooltip: text }" />
           </template>
-          
+
           <template v-else-if="column.key === 'goal'">
             <a-typography-text
               v-if="record.goal"
@@ -161,22 +161,22 @@
               </div>
             </div>
           </template>
-          
+
           <template v-else-if="column.key === 'priority'">
             <a-tag v-if="text === 'high'" color="error">高</a-tag>
             <a-tag v-else-if="text === 'medium'" color="warning">中</a-tag>
             <a-tag v-else-if="text === 'low'" color="processing">低</a-tag>
             <span v-else>{{ text }}</span>
           </template>
-          
+
           <template v-else-if="column.key === 'progressRate'">
             <a-progress :percent="text" size="small" />
           </template>
-          
+
           <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate'">
             {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm:ss') : '-' }}
           </template>
-          
+
           <template v-else-if="column.key === 'action'">
             <a-space size="small">
               <a-button type="link" size="small" @click="handleEdit(record)">
@@ -195,7 +195,7 @@
             </a-space>
           </template>
         </template>
-        
+
         <template #footer>
           <a-flex justify="flex-end">
             <a-pagination
@@ -224,7 +224,7 @@
           <a-typography-title :level="4">{{ modalTitle }}</a-typography-title>
         </div>
       </template>
-      
+
       <a-form
         layout="vertical"
         :model="modalForm"
@@ -237,7 +237,7 @@
               <a-input v-model:value="modalForm.title" placeholder="请输入任务标题" />
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="24">
             <a-form-item label="所属目标" name="goalId">
               <a-input-group compact>
@@ -299,13 +299,13 @@
               </div>
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="权重" name="weight">
               <a-slider v-model:value="modalForm.weight" :min="0" :max="100" />
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="任务状态" name="status">
               <a-select v-model:value="modalForm.status" placeholder="请选择任务状态" :disabled="!isEdit">
@@ -316,7 +316,7 @@
               </a-select>
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="优先级" name="priority">
               <a-select v-model:value="modalForm.priority" placeholder="请选择优先级">
@@ -326,7 +326,7 @@
               </a-select>
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="计划开始日期" name="planStartDate">
               <a-date-picker v-model:value="modalForm.planStartDate" placeholder="请选择计划开始日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
@@ -338,13 +338,13 @@
               <a-date-picker v-model:value="modalForm.planEndDate" placeholder="请选择计划结束日期时间" value-format="YYYY-MM-DD HH:mm:ss" show-time style="width: 100%" />
             </a-form-item>
           </a-col>
-          
+
           <a-col :span="12">
             <a-form-item label="进度百分比" name="progressRate">
               <a-slider v-model:value="modalForm.progressRate" :min="0" :max="100" />
             </a-form-item>
           </a-col>
-          
+
           <!-- 实际开始时间：仅在进行中或已完成时显示 -->
           <a-col :span="12" v-if="modalForm.status === 'in_progress' || modalForm.status === 'done'">
             <a-form-item label="实际开始时间" name="actualStartDate">
@@ -372,7 +372,7 @@
           </a-col>
         </a-row>
       </a-form>
-      
+
       <template #footer>
         <a-button @click="handleModalCancel">关 闭</a-button>
         <a-button type="primary" @click="handleModalOk" :loading="modalConfirmLoading">保 存</a-button>
@@ -620,6 +620,7 @@ const handleAdd = () => {
   modalTitle.value = '新增专注任务'
   isEdit.value = false
   Object.assign(modalForm, {
+    id: undefined,
     title: '',
     goalId: undefined,
     weight: 100,
@@ -643,7 +644,7 @@ const handleEdit = async (record: FocusTask) => {
   modalTitle.value = '编辑专注任务'
   isEdit.value = true
   modalVisible.value = true
-  
+
   try {
     const response = await getFocusTask(record.id!)
     Object.assign(modalForm, response.data)
@@ -700,7 +701,7 @@ const handleModalOk = () => {
         if (formData.planEndDate) {
           formData.planEndDate = dayjs(formData.planEndDate).format('YYYY-MM-DD HH:mm:ss')
         }
-        
+
         // 添加标签ID（转换为字符串数组）
         formData.tagIds = selectedTagIds.value.map(id => String(id))
 
