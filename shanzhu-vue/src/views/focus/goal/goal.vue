@@ -931,6 +931,8 @@ onMounted(() => {
 onActivated(() => {
   console.log('🔄 目标页面被激活，重新查询数据...')
   fetchData() // 重新查询目标数据
+  fetchCategoryList() // 重新查询分类列表，避免缓存
+  fetchTagList() // 重新查询标签列表，避免缓存
 })
 </script>
 

@@ -913,6 +913,8 @@ onMounted(() => {
 onActivated(() => {
   console.log('🔄 任务页面被激活，重新查询数据...')
   fetchData() // 重新查询任务数据
+  fetchTagList() // 重新查询标签列表，避免缓存
+  fetchGoalList() // 重新查询目标列表，避免缓存
 })
 </script>
 

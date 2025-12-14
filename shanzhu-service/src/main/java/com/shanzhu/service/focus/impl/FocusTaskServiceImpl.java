@@ -192,9 +192,7 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         // 🚀 新增：自动计算预期持续时间（基于计划开始和结束时间）
         if (focusTaskSaveDTO.getPlanStartDate() != null && focusTaskSaveDTO.getPlanEndDate() != null) {
             long seconds = Duration.between(focusTaskSaveDTO.getPlanStartDate(), focusTaskSaveDTO.getPlanEndDate()).getSeconds();
-            System.out.println(seconds);
             focusTaskSaveDTO.setExpectedDurationSec((int) seconds);
-            System.out.println( focusTaskSaveDTO.getExpectedDurationSec());
             log.debug("⏱️ 自动计算预期持续时间: {} 秒", seconds);
         }
 
