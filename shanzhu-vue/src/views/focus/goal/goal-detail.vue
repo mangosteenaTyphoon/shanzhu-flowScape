@@ -150,6 +150,7 @@
                 <a-tag v-if="text === 'todo'" color="default">待办</a-tag>
                 <a-tag v-else-if="text === 'in_progress'" color="processing">进行中</a-tag>
                 <a-tag v-else-if="text === 'done'" color="success">已完成</a-tag>
+                <a-tag v-else-if="text === 'completedOverdueAllowed'" color="orange">超期完成</a-tag>
                 <a-tag v-else-if="text === 'completedOverdue'" color="error">逾期完成</a-tag>
                 <a-tag v-else-if="text === 'cancelled'" color="warning">已取消</a-tag>
               </template>
@@ -216,7 +217,7 @@
 
                   <!-- 完成状态：显示输入总结按钮 -->
                   <a-button
-                    v-if="record.status === 'done' || record.status === 'completedOverdue'"
+                    v-if="record.status === 'done' || record.status === 'completedOverdue' || record.status === 'completedOverdueAllowed'"
                     type="primary"
                     size="small"
                     @click="handleEditSummary(record)"
@@ -229,7 +230,7 @@
 
                   <!-- 通用编辑按钮（非完成状态时显示） -->
                   <a-button
-                    v-if="record.status !== 'done' && record.status !== 'completedOverdue'"
+                    v-if="record.status !== 'done' && record.status !== 'completedOverdue' && record.status !== 'completedOverdueAllowed'"
                     type="link"
                     size="small"
                     @click="handleEdit(record)"
@@ -246,13 +247,13 @@
                     ok-text="确认"
                     cancel-text="取消"
                     @confirm="handleDelete([record.id])"
-                    :disabled="record.status === 'done' || record.status === 'completedOverdue'"
+                    :disabled="record.status === 'done' || record.status === 'completedOverdue' || record.status === 'completedOverdueAllowed'"
                   >
                     <a-button
                       type="link"
                       size="small"
                       danger
-                      :disabled="record.status === 'done' || record.status === 'completedOverdue'"
+                      :disabled="record.status === 'done' || record.status === 'completedOverdue' || record.status === 'completedOverdueAllowed'"
                     >
                       <template #icon>
                         <DeleteOutlined />

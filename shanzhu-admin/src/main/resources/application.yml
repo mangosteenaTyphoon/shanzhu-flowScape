@@ -20,6 +20,15 @@ task:
       in_progress: 0.0                 # 进行中（未完成）
       cancelled: 0.0                   # 已取消
 
+# 专注任务配置
+focus:
+  task:
+    timeout:
+      # 可容许的任务延迟完成时间（分钟）
+      # 如果任务完成时间超出计划结束时间但在此容忍时间内，状态为 completedOverdueAllowed
+      # 如果超出容忍时间，状态为 completedOverdue
+      allowed-delay-minutes: 30
+
 spring:
   profiles:
     # 切换开发/生产环境

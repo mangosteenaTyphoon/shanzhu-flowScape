@@ -13,6 +13,7 @@ import com.shanzhu.model.focus.dto.FocusTagRelDTO;
 import com.shanzhu.model.focus.dto.FocusTaskDTO;
 import com.shanzhu.model.focus.dto.FocusTaskSaveDTO;
 import com.shanzhu.model.focus.vo.FocusTaskVO;
+import com.shanzhu.config.focus.TaskTimeoutConfig;
 import com.shanzhu.service.focus.FocusGoalService;
 import com.shanzhu.service.focus.FocusTagRelService;
 import com.shanzhu.service.focus.FocusTagService;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -46,6 +48,9 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
 
     @Resource
     private FocusGoalService focusGoalService;
+
+    @Resource
+    private TaskTimeoutConfig taskTimeoutConfig;
 
     @Override
     public IPage<FocusTaskVO> queryPage(FocusTaskDTO focusTaskDTO) {
@@ -205,15 +210,28 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
 
         // 根据实际完成日期与计划结束日期对比，自动设置任务状态
         if (focusTaskSaveDTO.getActualEndDate() != null && focusTaskSaveDTO.getPlanEndDate() != null) {
-            // 如果实际结束日期晚于计划结束日期，设置为逾期完成
-            if (focusTaskSaveDTO.getActualEndDate().isAfter(focusTaskSaveDTO.getPlanEndDate())) {
+            // 计算允许延迟的截止时间
+            LocalDateTime allowedDelayDeadline = focusTaskSaveDTO.getPlanEndDate()
+                    .plusSeconds(taskTimeoutConfig.getAllowedDelaySeconds());
+
+            if (focusTaskSaveDTO.getActualEndDate().isAfter(allowedDelayDeadline)) {
+                // 完成时间 > 计划结束时间 + 容忍延迟时间：逾期完成
                 focusTaskSaveDTO.setStatus("completedOverdue");
-                log.info("任务逾期完成，自动设置状态为逾期完成: taskId={}, title={}, 计划结束: {}, 实际结束: {}",
+                log.info("任务逾期完成，自动设置状态为逾期完成: taskId={}, title={}, 计划结束: {}, 实际结束: {}, 容忍延迟: {}分钟",
                         focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle(),
-                        focusTaskSaveDTO.getPlanEndDate(), focusTaskSaveDTO.getActualEndDate());
+                        focusTaskSaveDTO.getPlanEndDate(), focusTaskSaveDTO.getActualEndDate(),
+                        taskTimeoutConfig.getAllowedDelayMinutes());
+            } else if (focusTaskSaveDTO.getActualEndDate().isAfter(focusTaskSaveDTO.getPlanEndDate())) {
+                // 计划结束时间 < 完成时间 <= 计划结束时间 + 容忍延迟时间：超期完成（可接受）
+                focusTaskSaveDTO.setStatus("completedOverdueAllowed");
+                log.info("任务超期完成（可接受范围），自动设置状态为超期完成: taskId={}, title={}, 计划结束: {}, 实际结束: {}, 容忍延迟: {}分钟",
+                        focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle(),
+                        focusTaskSaveDTO.getPlanEndDate(), focusTaskSaveDTO.getActualEndDate(),
+                        taskTimeoutConfig.getAllowedDelayMinutes());
             } else {
-                // 如果实际结束日期在计划结束日期之前或当天，设置为正常完成
+                // 完成时间 <= 计划结束时间：按时完成
                 if ("completedOverdue".equals(focusTaskSaveDTO.getStatus()) ||
+                        "completedOverdueAllowed".equals(focusTaskSaveDTO.getStatus()) ||
                         focusTaskSaveDTO.getStatus() == null ||
                         "in_progress".equals(focusTaskSaveDTO.getStatus())) {
                     focusTaskSaveDTO.setStatus("done");
