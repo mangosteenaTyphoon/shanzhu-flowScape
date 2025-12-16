@@ -4,6 +4,7 @@
     <a-page-header
       title="目标详情"
       @back="handleBack"
+      style="padding-top: 4px; padding-bottom: 8px"
     >
       <template #extra>
         <a-button @click="handleBack">
@@ -16,10 +17,10 @@
     </a-page-header>
 
     <a-spin :spinning="loading">
-      <a-flex :gap="16" vertical style="padding: 16px">
+      <a-flex :gap="12" vertical style="padding: 12px; padding-top: 0">
         <!-- 目标详情信息 -->
-        <a-card title="基本信息" :bordered="false">
-          <a-descriptions :column="2" bordered>
+        <a-card title="基本信息" :bordered="false" size="small">
+          <a-descriptions :column="2" bordered size="small">
             <a-descriptions-item label="目标标题" :span="2">
               {{ detailData.title }}
             </a-descriptions-item>
@@ -62,7 +63,7 @@
         </a-card>
 
         <!-- 任务列表 -->
-        <a-card title="关联任务" :bordered="false">
+        <a-card title="关联任务" :bordered="false" size="small">
           <template #extra>
             <a-button type="primary" @click="handleAdd">
               <template #icon>
@@ -73,8 +74,8 @@
           </template>
 
           <!-- 搜索筛选区域 -->
-          <a-form :colon="false" style="margin-bottom: 16px">
-            <a-row :gutter="16">
+          <a-form :colon="false" style="margin-bottom: 12px">
+            <a-row :gutter="12">
               <a-col>
                 <a-form-item label="任务标题">
                   <a-input v-model:value="searchForm.title" placeholder="请输入任务标题" allow-clear style="width: 160px" />
@@ -219,19 +220,22 @@
     <!-- 新增/编辑任务模态框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="modalTitle"
       :confirm-loading="modalConfirmLoading"
       @ok="handleModalOk"
       @cancel="handleModalCancel"
-      width="800px"
-      destroy-on-close
+      :width="600"
     >
+      <template #title>
+        <div style="margin-bottom: 24px">
+          <a-typography-title :level="4">{{ modalTitle }}</a-typography-title>
+        </div>
+      </template>
+
       <a-form
-        ref="modalFormRef"
+        layout="vertical"
         :model="modalForm"
         :rules="modalRules"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 16 }"
+        ref="modalFormRef"
       >
         <a-form-item label="任务标题" name="title">
           <a-input v-model:value="modalForm.title" placeholder="请输入任务标题" />
