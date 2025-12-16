@@ -139,7 +139,7 @@
             :data-source="taskList"
             :loading="taskLoading"
             :pagination="false"
-            :scroll="{ x: 1400 }"
+            :scroll="{ x: 1680 }"
             row-key="id"
           >
             <template #bodyCell="{ column, text, record }">
@@ -165,7 +165,7 @@
                 <a-progress :percent="text || 0" :show-info="false" size="small" />
                 <span style="margin-left: 8px">{{ text || 0 }}%</span>
               </template>
-              <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate'">
+              <template v-else-if="column.key === 'planStartDate' || column.key === 'planEndDate' || column.key === 'actualStartDate' || column.key === 'actualEndDate'">
                 {{ text ? dayjs(text).format('YYYY-MM-DD HH:mm') : '-' }}
               </template>
               <template v-else-if="column.key === 'expectedDurationSec'">
@@ -246,8 +246,14 @@
                     ok-text="确认"
                     cancel-text="取消"
                     @confirm="handleDelete([record.id])"
+                    :disabled="record.status === 'done' || record.status === 'completedOverdue'"
                   >
-                    <a-button type="link" size="small" danger>
+                    <a-button
+                      type="link"
+                      size="small"
+                      danger
+                      :disabled="record.status === 'done' || record.status === 'completedOverdue'"
+                    >
                       <template #icon>
                         <DeleteOutlined />
                       </template>
@@ -800,7 +806,6 @@ const taskColumns = [
     key: 'qualityGrade',
     width: 90
   },
-
   {
     title: '进度',
     dataIndex: 'progressRate',
@@ -817,6 +822,18 @@ const taskColumns = [
     title: '计划结束',
     dataIndex: 'planEndDate',
     key: 'planEndDate',
+    width: 140
+  },
+  {
+    title: '实际开始',
+    dataIndex: 'actualStartDate',
+    key: 'actualStartDate',
+    width: 140
+  },
+  {
+    title: '实际结束',
+    dataIndex: 'actualEndDate',
+    key: 'actualEndDate',
     width: 140
   },
   {
