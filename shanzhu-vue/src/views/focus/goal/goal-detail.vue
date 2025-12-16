@@ -138,9 +138,10 @@
             :columns="taskColumns"
             :data-source="taskList"
             :loading="taskLoading"
-            :pagination="false"
-            :scroll="{ x: 1680 }"
+            :pagination="pagination"
+            :scroll="{ x: 1400 }"
             row-key="id"
+            @change="handleTableChange"
           >
             <template #bodyCell="{ column, text, record }">
               <template v-if="column.key === 'title'">
@@ -775,6 +776,18 @@ const detailData = ref<FocusGoal>({})
 const taskList = ref<FocusTask[]>([])
 const taskLoading = ref<boolean>(false)
 const allTaskList = ref<FocusTask[]>([]) // 保存所有任务数据，用于筛选
+const filteredTaskList = ref<FocusTask[]>([]) // 筛选后的任务数据
+
+// 分页相关状态
+const pagination = reactive({
+  current: 1,        // 当前页码
+  pageSize: 10,      // 每页显示数量
+  total: 0,          // 总条数
+  showSizeChanger: true,  // 显示页面大小选择器
+  showQuickJumper: true,  // 显示快速跳转
+  showTotal: (total: number, range: [number, number]) => `共 ${total} 条，当前 ${range[0]}-${range[1]} 条`,
+  pageSizeOptions: ['5', '10', '20', '50', '100'], // 页面大小选项
+})
 
 // 搜索表单
 const searchForm = reactive({
@@ -1006,7 +1019,7 @@ const loadData = async () => {
   try {
     const goalId = route.params.id as string
     console.log('目标ID:', goalId)
-    
+
     if (!goalId) {
       console.error('目标ID不存在')
       message.error('目标ID不存在')
@@ -1037,7 +1050,8 @@ const loadData = async () => {
       return timeB - timeA
     })
     allTaskList.value = sortedTasks
-    taskList.value = sortedTasks
+    filteredTaskList.value = sortedTasks
+    updatePaginationData()
     console.log('taskList 设置完成:', taskList.value)
   } catch (err) {
     console.error('获取目标详情失败:', err)
@@ -1447,7 +1461,9 @@ const handleSearch = () => {
     })
   }
 
-  taskList.value = filteredList
+  filteredTaskList.value = filteredList
+  pagination.current = 1 // 搜索后重置到第一页
+  updatePaginationData()
 }
 
 // 重置搜索
@@ -1456,7 +1472,24 @@ const resetSearch = () => {
   searchForm.status = undefined
   searchForm.planStartDate = undefined
   searchForm.planEndDate = undefined
-  taskList.value = [...allTaskList.value]
+  filteredTaskList.value = [...allTaskList.value]
+  pagination.current = 1 // 重置到第一页
+  updatePaginationData()
+}
+
+// 分页处理函数
+const handleTableChange = (paginationInfo: any) => {
+  pagination.current = paginationInfo.current
+  pagination.pageSize = paginationInfo.pageSize
+  updatePaginationData()
+}
+
+// 更新分页数据
+const updatePaginationData = () => {
+  const startIndex = (pagination.current - 1) * pagination.pageSize
+  const endIndex = startIndex + pagination.pageSize
+  taskList.value = filteredTaskList.value.slice(startIndex, endIndex)
+  pagination.total = filteredTaskList.value.length
 }
 
 // ========== 新增的任务操作函数 ==========
