@@ -97,4 +97,6 @@ public class FocusGoalDO extends BaseEntity {
      * 逻辑删除
      */
     private String delFlag;
+
+
 }

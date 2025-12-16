@@ -1,5 +1,25 @@
 server:
   port: 8080
+
+# 任务分数配置
+task:
+  score:
+    # 质量等级分数映射
+    qualityGrade:
+      A: 4.0  # 优秀
+      B: 3.0  # 良好
+      C: 2.0  # 合格
+      D: 1.0  # 不及格
+    # 状态分数映射
+    status:
+      done: 1.0                        # 已完成
+      completedOverdueAllowed: 0.9     # 允许延期完成
+      completedOverdue: 0.8            # 延期完成
+      incompleteOverdue: 0.5           # 未完成且延期
+      todo: 0.0                        # 待办（未开始）
+      in_progress: 0.0                 # 进行中（未完成）
+      cancelled: 0.0                   # 已取消
+
 spring:
   profiles:
     # 切换开发/生产环境
@@ -34,7 +54,7 @@ mybatis-plus:
   # 将 xml 放到 java 目录下
   mapper-locations: classpath*:com/shanzhu/**/mapper/**/*.xml
 
- # 滑块验证码配置， 详细请看 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties 类
+  # 滑块验证码配置， 详细请看 cloud.tianai.captcha.autoconfiguration.ImageCaptchaProperties 类
 captcha:
   # 如果项目中使用到了redis，滑块验证码会自动把验证码数据存到redis中， 这里配置redis的key的前缀
   prefix: REDIS_CACHE_CAPTCHA

@@ -74,7 +74,7 @@ public class FocusTaskDO extends BaseEntity {
     private Integer weight;
 
     /**
-     * 任务状态 (todo: 待办, in_progress: 进行中, done: 已完成, cancelled: 已取消)
+     * 任务状态 (todo: 待办, in_progress: 进行中, done: 已完成, cancelled: 已取消 ,completedOverdueAllowed : 超期完成 , completedOverdue : 逾期完成 , incompleteOverdue : 逾期未完成)
      */
     private String status;
 
@@ -97,4 +97,15 @@ public class FocusTaskDO extends BaseEntity {
      * 逻辑删除
      */
     private String delFlag;
+
+    /**
+     * 任务质量等级（A=优秀, B=良好, C=合格, D=不及格）
+     */
+    private String qualityGrade;
+
+    /**
+     * 任务总结
+     */
+    private String taskSummary;
+
 }
