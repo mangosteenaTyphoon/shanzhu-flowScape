@@ -988,7 +988,7 @@ const loadData = async () => {
   try {
     const goalId = route.params.id as string
     console.log('目标ID:', goalId)
-
+    
     if (!goalId) {
       console.error('目标ID不存在')
       message.error('目标ID不存在')
@@ -1059,6 +1059,23 @@ const fetchGoalList = async () => {
   }
 }
 
+// 统一的数据刷新函数 - 在所有后端操作后调用
+const refreshAllData = async () => {
+  try {
+    console.log('开始刷新所有数据')
+    // 并行执行所有数据刷新操作
+    await Promise.all([
+      loadData(),        // 刷新目标详情和任务列表
+      fetchTagList(),    // 刷新标签列表
+      fetchGoalList()    // 刷新目标列表
+    ])
+    console.log('所有数据刷新完成')
+  } catch (err) {
+    console.error('数据刷新失败:', err)
+    message.error('数据刷新失败，请手动刷新页面')
+  }
+}
+
 // 标签选择变化
 const handleTagChange = (values: number[]) => {
   selectedTagIds.value = values
@@ -1096,7 +1113,7 @@ const handleTagAdd = async () => {
 
     if (response.code === 200) {
       message.success('标签创建成功')
-      await fetchTagList()
+      await refreshAllData()
 
       const created = tagList.value.find(t => t.name === newTag.name)
       if (created && !selectedTagIds.value.includes(created.id!)) {
@@ -1230,7 +1247,7 @@ const handleModalOk = () => {
         if (result.code === 200 && result.data) {
           message.success(`${isEdit.value ? '编辑' : '新增'}成功`)
           modalVisible.value = false
-          loadData() // 重新加载数据
+          await refreshAllData() // 刷新所有相关数据
         } else {
           message.error(result.msg || `${isEdit.value ? '编辑' : '新增'}失败`)
         }
@@ -1264,7 +1281,7 @@ const handleDelete = (ids: number[]) => {
         const result = await deleteFocusTask(ids)
         if (result.code === 200 && result.data) {
           message.success('删除成功')
-          loadData() // 重新加载数据
+          await refreshAllData() // 刷新所有相关数据
         } else {
           message.error(result.msg || '删除失败')
         }
@@ -1335,10 +1352,10 @@ const updateTaskStatus = async (record: FocusTask, newStatus: string, timeValue?
     const result = await saveFocusTask(updateData)
     if (result.code === 200 && result.data) {
       message.success('状态更新成功')
-      loadData()
+      await refreshAllData()
     } else {
       message.error(result.msg || '状态更新失败')
-      loadData()
+      await refreshAllData()
     }
   } catch (err) {
     console.error('更新任务状态失败:', err)
@@ -1492,7 +1509,7 @@ const handleProgressModalOk = async () => {
     if (result.code === 200 && result.data) {
       message.success('进度更新成功')
       progressModalVisible.value = false
-      loadData()
+      await refreshAllData()
     } else {
       message.error(result.msg || '进度更新失败')
     }
@@ -1547,7 +1564,7 @@ const handleSummaryModalOk = async () => {
     if (result.code === 200 && result.data) {
       message.success('任务总结更新成功')
       summaryModalVisible.value = false
-      loadData()
+      await refreshAllData()
     } else {
       message.error(result.msg || '任务总结更新失败')
     }
