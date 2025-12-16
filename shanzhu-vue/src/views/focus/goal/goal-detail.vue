@@ -160,11 +160,7 @@
                 <a-tag v-else-if="text === 'D'" color="red">D-不及格</a-tag>
                 <span v-else style="color: #bfbfbf">未评级</span>
               </template>
-              <template v-else-if="column.key === 'priority'">
-                <a-tag v-if="text === 'high'" color="red">高</a-tag>
-                <a-tag v-else-if="text === 'medium'" color="orange">中</a-tag>
-                <a-tag v-else-if="text === 'low'" color="blue">低</a-tag>
-              </template>
+
               <template v-else-if="column.key === 'progressRate'">
                 <a-progress :percent="text || 0" :show-info="false" size="small" />
                 <span style="margin-left: 8px">{{ text || 0 }}%</span>
@@ -351,13 +347,7 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="优先级">
-          <a-select v-model:value="modalForm.priority" placeholder="请选择优先级">
-            <a-select-option value="low">低</a-select-option>
-            <a-select-option value="medium">中</a-select-option>
-            <a-select-option value="high">高</a-select-option>
-          </a-select>
-        </a-form-item>
+
 
         <a-form-item label="权重">
           <a-input-number
@@ -810,12 +800,7 @@ const taskColumns = [
     key: 'qualityGrade',
     width: 90
   },
-  {
-    title: '优先级',
-    dataIndex: 'priority',
-    key: 'priority',
-    width: 80
-  },
+
   {
     title: '进度',
     dataIndex: 'progressRate',
