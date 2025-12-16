@@ -182,25 +182,46 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
         // 设置用户ID
         focusTaskSaveDTO.setUserId(Long.valueOf(LoginUserContext.getUserId()));
 
-        // 🚀 新增：任务状态完成时自动设置进度为100%
+        // 新增：任务状态完成时自动设置进度为100%
         if ("completed".equals(focusTaskSaveDTO.getStatus()) || "完成".equals(focusTaskSaveDTO.getStatus())) {
             focusTaskSaveDTO.setProgressRate(100);
-            log.info("📋 任务状态设置为完成，自动调整进度为100%: taskId={}, title={}",
+            log.info("任务状态设置为完成，自动调整进度为100%: taskId={}, title={}",
                     focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle());
         }
 
-        // 🚀 新增：自动计算预期持续时间（基于计划开始和结束时间）
+        // 新增：自动计算预期持续时间（基于计划开始和结束时间）
         if (focusTaskSaveDTO.getPlanStartDate() != null && focusTaskSaveDTO.getPlanEndDate() != null) {
             long seconds = Duration.between(focusTaskSaveDTO.getPlanStartDate(), focusTaskSaveDTO.getPlanEndDate()).getSeconds();
             focusTaskSaveDTO.setExpectedDurationSec((int) seconds);
-            log.debug("⏱️ 自动计算预期持续时间: {} 秒", seconds);
+            log.debug("自动计算预期持续时间: {} 秒", seconds);
         }
 
-        // 🚀 新增：自动计算实际消耗时间（基于实际开始和结束时间）
+        // 新增：自动计算实际消耗时间（基于实际开始和结束时间）
         if (focusTaskSaveDTO.getActualStartDate() != null && focusTaskSaveDTO.getActualEndDate() != null) {
             long seconds = Duration.between(focusTaskSaveDTO.getActualStartDate(), focusTaskSaveDTO.getActualEndDate()).getSeconds();
             focusTaskSaveDTO.setActualConsumedSec((int) seconds);
-            log.debug("⏱️ 自动计算实际消耗时间: {} 秒", seconds);
+            log.debug("自动计算实际消耗时间: {} 秒", seconds);
+        }
+
+        // 根据实际完成日期与计划结束日期对比，自动设置任务状态
+        if (focusTaskSaveDTO.getActualEndDate() != null && focusTaskSaveDTO.getPlanEndDate() != null) {
+            // 如果实际结束日期晚于计划结束日期，设置为逾期完成
+            if (focusTaskSaveDTO.getActualEndDate().isAfter(focusTaskSaveDTO.getPlanEndDate())) {
+                focusTaskSaveDTO.setStatus("completedOverdue");
+                log.info("任务逾期完成，自动设置状态为逾期完成: taskId={}, title={}, 计划结束: {}, 实际结束: {}",
+                        focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle(),
+                        focusTaskSaveDTO.getPlanEndDate(), focusTaskSaveDTO.getActualEndDate());
+            } else {
+                // 如果实际结束日期在计划结束日期之前或当天，设置为正常完成
+                if ("completedOverdue".equals(focusTaskSaveDTO.getStatus()) ||
+                        focusTaskSaveDTO.getStatus() == null ||
+                        "in_progress".equals(focusTaskSaveDTO.getStatus())) {
+                    focusTaskSaveDTO.setStatus("done");
+                    log.info("任务按时完成，自动设置状态为已完成: taskId={}, title={}, 计划结束: {}, 实际结束: {}",
+                            focusTaskSaveDTO.getId(), focusTaskSaveDTO.getTitle(),
+                            focusTaskSaveDTO.getPlanEndDate(), focusTaskSaveDTO.getActualEndDate());
+                }
+            }
         }
 
         // 使用MapStruct转换DTO到DO
