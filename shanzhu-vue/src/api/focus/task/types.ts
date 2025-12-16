@@ -8,6 +8,7 @@ export interface FocusTask {
   userId?: number
   goalId?: number
   title?: string
+  description?: string
   planStartDate?: string
   planEndDate?: string
   actualStartDate?: string
@@ -16,10 +17,14 @@ export interface FocusTask {
   weight?: number
   status?: string
   priority?: string
+  qualityGrade?: string
+  taskSummary?: string
   expectedDurationSec?: number
   actualConsumedSec?: number
   createdAt?: string
   updatedAt?: string
+  tagIds?: string[]
+  goal?: any
 }
 
 /**

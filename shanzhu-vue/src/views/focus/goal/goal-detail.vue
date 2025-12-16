@@ -147,25 +147,18 @@
                 <a-typography-text ellipsis>{{ text }}</a-typography-text>
               </template>
               <template v-else-if="column.key === 'status'">
-                <div class="status-select-wrapper">
-                  <a-select
-                    :value="text"
-                    @change="(value) => handleStatusChange(record, value)"
-                    size="small"
-                    style="width: 100px"
-                  >
-                    <a-select-option value="todo">待办</a-select-option>
-                    <a-select-option value="in_progress">进行中</a-select-option>
-                    <a-select-option value="done">已完成</a-select-option>
-                    <a-select-option value="cancelled">已取消</a-select-option>
-                  </a-select>
-                  <div class="status-display">
-                    <a-tag v-if="text === 'todo'" color="default">待办</a-tag>
-                    <a-tag v-else-if="text === 'in_progress'" color="processing">进行中</a-tag>
-                    <a-tag v-else-if="text === 'done'" color="success">已完成</a-tag>
-                    <a-tag v-else-if="text === 'cancelled'" color="warning">已取消</a-tag>
-                  </div>
-                </div>
+                <a-tag v-if="text === 'todo'" color="default">待办</a-tag>
+                <a-tag v-else-if="text === 'in_progress'" color="processing">进行中</a-tag>
+                <a-tag v-else-if="text === 'done'" color="success">已完成</a-tag>
+                <a-tag v-else-if="text === 'completedOverdue'" color="error">逾期完成</a-tag>
+                <a-tag v-else-if="text === 'cancelled'" color="warning">已取消</a-tag>
+              </template>
+              <template v-else-if="column.key === 'qualityGrade'">
+                <a-tag v-if="text === 'A'" color="green">A-优秀</a-tag>
+                <a-tag v-else-if="text === 'B'" color="blue">B-良好</a-tag>
+                <a-tag v-else-if="text === 'C'" color="orange">C-合格</a-tag>
+                <a-tag v-else-if="text === 'D'" color="red">D-不及格</a-tag>
+                <span v-else style="color: #bfbfbf">未评级</span>
               </template>
               <template v-else-if="column.key === 'priority'">
                 <a-tag v-if="text === 'high'" color="red">高</a-tag>
@@ -185,14 +178,73 @@
               <template v-else-if="column.key === 'actualConsumedSec'">
                 {{ formatDuration(text) }}
               </template>
+              <template v-else-if="column.key === 'taskSummary'">
+                <a-typography-text
+                  ellipsis
+                  :content="text || '暂无总结'"
+                  style="cursor: pointer; color: #1890ff"
+                  @click="handleViewTaskSummary(record)"
+                >
+                  {{ text || '暂无总结' }}
+                </a-typography-text>
+              </template>
               <template v-else-if="column.key === 'action'">
                 <a-space size="small">
-                  <a-button type="link" size="small" @click="handleEdit(record)">
+                  <!-- 根据任务状态显示不同操作按钮 -->
+
+                  <!-- todo状态：显示开始按钮 -->
+                  <a-button
+                    v-if="record.status === 'todo'"
+                    type="primary"
+                    size="small"
+                    @click="handleStartTask(record)"
+                  >
+                    <template #icon>
+                      <PlayCircleOutlined />
+                    </template>
+                    开始
+                  </a-button>
+
+                  <!-- in_progress状态：显示修改进度按钮 -->
+                  <a-button
+                    v-if="record.status === 'in_progress'"
+                    type="primary"
+                    size="small"
+                    @click="handleUpdateProgress(record)"
+                  >
+                    <template #icon>
+                      <PercentageOutlined />
+                    </template>
+                    修改进度
+                  </a-button>
+
+                  <!-- 完成状态：显示输入总结按钮 -->
+                  <a-button
+                    v-if="record.status === 'done' || record.status === 'completedOverdue'"
+                    type="primary"
+                    size="small"
+                    @click="handleEditSummary(record)"
+                  >
+                    <template #icon>
+                      <EditOutlined />
+                    </template>
+                    输入总结
+                  </a-button>
+
+                  <!-- 通用编辑按钮（非完成状态时显示） -->
+                  <a-button
+                    v-if="record.status !== 'done' && record.status !== 'completedOverdue'"
+                    type="link"
+                    size="small"
+                    @click="handleEdit(record)"
+                  >
                     <template #icon>
                       <EditOutlined />
                     </template>
                     编辑
                   </a-button>
+
+                  <!-- 删除按钮 -->
                   <a-popconfirm
                     title="确定要删除这条任务吗？"
                     ok-text="确认"
@@ -413,6 +465,282 @@
         />
       </a-form>
     </a-modal>
+
+    <!-- 进度修改弹窗 -->
+    <a-modal
+      v-model:open="progressModalVisible"
+      title="修改任务进度"
+      :confirm-loading="progressModalLoading"
+      @ok="handleProgressModalOk"
+      @cancel="handleProgressModalCancel"
+      width="500px"
+    >
+      <a-form layout="vertical">
+        <a-form-item label="任务标题">
+          <a-input :value="currentTaskRecord?.title" disabled />
+        </a-form-item>
+
+        <a-form-item label="当前进度">
+          <div style="padding: 0 10px">
+            <a-slider
+              v-model:value="progressValue"
+              :min="0"
+              :max="100"
+              :marks="{ 0: '0%', 25: '25%', 50: '50%', 75: '75%', 100: '100%' }"
+              :tooltip="{ formatter: (value) => `${value}%` }"
+            />
+          </div>
+          <div style="margin-top: 8px; text-align: center">
+            <a-input-number
+              v-model:value="progressValue"
+              :min="0"
+              :max="100"
+              :precision="0"
+              style="width: 120px"
+              addon-after="%"
+            />
+          </div>
+        </a-form-item>
+
+        <a-alert
+          v-if="progressValue === 100"
+          message="进度达到100%将自动完成任务，请准备输入完成时间"
+          type="warning"
+          show-icon
+          style="margin-top: 8px"
+        />
+        <a-alert
+          v-else
+          message="可以随时调整任务进度，支持多次修改"
+          type="info"
+          show-icon
+          style="margin-top: 8px"
+        />
+      </a-form>
+    </a-modal>
+
+    <!-- 任务总结编辑弹窗 -->
+    <a-modal
+      v-model:open="summaryModalVisible"
+      title="编辑任务总结"
+      :confirm-loading="summaryModalLoading"
+      @ok="handleSummaryModalOk"
+      @cancel="handleSummaryModalCancel"
+      width="600px"
+    >
+      <a-form layout="vertical">
+        <a-form-item label="任务标题">
+          <a-input :value="currentTaskRecord?.title" disabled />
+        </a-form-item>
+
+        <a-form-item label="质量等级">
+          <a-select v-model:value="summaryQualityGrade" placeholder="请选择质量等级" allow-clear>
+            <a-select-option value="A">A - 优秀</a-select-option>
+            <a-select-option value="B">B - 良好</a-select-option>
+            <a-select-option value="C">C - 合格</a-select-option>
+            <a-select-option value="D">D - 不及格</a-select-option>
+          </a-select>
+        </a-form-item>
+
+        <a-form-item label="任务总结">
+          <a-textarea
+            v-model:value="summaryValue"
+            placeholder="请输入任务总结，包括完成情况、遇到的问题、收获等"
+            :rows="6"
+          />
+        </a-form-item>
+
+        <a-alert
+          message="您可以随时修改任务总结和质量等级评价"
+          type="info"
+          show-icon
+          style="margin-top: 8px"
+        />
+      </a-form>
+    </a-modal>
+
+    <!-- 任务总结查看弹窗 -->
+    <a-modal
+      v-model:open="viewSummaryModalVisible"
+      title="查看任务总结"
+      :footer="null"
+      width="700px"
+      :body-style="{ maxHeight: '70vh', overflow: 'hidden', padding: '16px' }"
+    >
+      <div style="max-height: 60vh; overflow-y: auto; padding-right: 8px;">
+        <a-descriptions :column="1" bordered size="small">
+          <a-descriptions-item label="任务标题">
+            <div style="word-wrap: break-word; word-break: break-all;">
+              {{ viewSummaryTaskRecord?.title || '无标题' }}
+            </div>
+          </a-descriptions-item>
+          <a-descriptions-item label="质量等级">
+            <a-tag v-if="viewSummaryTaskRecord?.qualityGrade === 'A'" color="green">A - 优秀</a-tag>
+            <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'B'" color="blue">B - 良好</a-tag>
+            <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'C'" color="orange">C - 合格</a-tag>
+            <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'D'" color="red">D - 不及格</a-tag>
+            <span v-else style="color: #bfbfbf">未评级</span>
+          </a-descriptions-item>
+          <a-descriptions-item label="任务总结" :span="1">
+            <div
+              v-if="viewSummaryTaskRecord?.taskSummary"
+              style="
+                white-space: pre-wrap;
+                line-height: 1.6;
+                padding: 12px;
+                background-color: #ffffff;
+                border-radius: 6px;
+                border: 1px solid #e8e8e8;
+                max-height: 400px;
+                overflow-y: auto;
+                word-wrap: break-word;
+                word-break: break-all;
+                font-size: 14px;
+                position: relative;
+              "
+            >
+              <!-- 全屏按钮 -->
+              <a-button
+                type="text"
+                size="small"
+                @click="handleFullscreenSummary"
+                style="
+                  position: absolute;
+                  top: 8px;
+                  right: 8px;
+                  z-index: 10;
+                  background-color: rgba(255, 255, 255, 0.9);
+                  border: none;
+                  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                "
+                :title="'全屏查看'"
+              >
+                <template #icon>
+                  <FullscreenOutlined />
+                </template>
+              </a-button>
+
+              {{ viewSummaryTaskRecord.taskSummary }}
+            </div>
+            <div v-else style="color: #bfbfbf; font-style: italic; text-align: center; padding: 20px;">
+              暂无总结
+            </div>
+          </a-descriptions-item>
+        </a-descriptions>
+      </div>
+
+      <!-- 提示文本 -->
+      <div v-if="viewSummaryTaskRecord?.taskSummary && viewSummaryTaskRecord.taskSummary.length > 200"
+           style="margin-top: 8px; text-align: center; color: #999; font-size: 12px;">
+        📖 内容较长，可上下滚动查看完整总结
+      </div>
+    </a-modal>
+
+    <!-- 全屏任务总结弹窗 -->
+    <a-modal
+      v-model:open="fullscreenSummaryModalVisible"
+      title="全屏查看任务总结"
+      :footer="null"
+      :width="'100vw'"
+      :style="{ top: 0 }"
+      :body-style="{
+        height: 'calc(100vh - 55px)',
+        overflow: 'hidden',
+        padding: 0,
+        margin: 0
+      }"
+      :mask="false"
+      :closable="true"
+      :keyboard="true"
+    >
+      <div style="
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: #f8f9fa;
+      ">
+        <!-- 头部信息区域 -->
+        <div style="
+          padding: 24px 32px;
+          background-color: #ffffff;
+          border-bottom: 1px solid #e8e8e8;
+          flex-shrink: 0;
+        ">
+          <a-descriptions :column="2" bordered size="default" style="margin-bottom: 0;">
+            <a-descriptions-item label="任务标题" :span="2">
+              <div style="font-size: 16px; font-weight: 500; word-wrap: break-word; word-break: break-all;">
+                {{ viewSummaryTaskRecord?.title || '无标题' }}
+              </div>
+            </a-descriptions-item>
+            <a-descriptions-item label="质量等级">
+              <a-tag v-if="viewSummaryTaskRecord?.qualityGrade === 'A'" color="green" style="font-size: 14px; padding: 4px 8px;">A - 优秀</a-tag>
+              <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'B'" color="blue" style="font-size: 14px; padding: 4px 8px;">B - 良好</a-tag>
+              <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'C'" color="orange" style="font-size: 14px; padding: 4px 8px;">C - 合格</a-tag>
+              <a-tag v-else-if="viewSummaryTaskRecord?.qualityGrade === 'D'" color="red" style="font-size: 14px; padding: 4px 8px;">D - 不及格</a-tag>
+              <span v-else style="color: #bfbfbf; font-size: 14px;">未评级</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="字数统计">
+              <span style="color: #666; font-size: 14px;">
+                {{ viewSummaryTaskRecord?.taskSummary ? `${viewSummaryTaskRecord.taskSummary.length} 字符` : '0 字符' }}
+              </span>
+            </a-descriptions-item>
+          </a-descriptions>
+        </div>
+
+        <!-- 总结内容区域 -->
+        <div style="
+          flex: 1;
+          padding: 32px;
+          overflow-y: auto;
+          background-color: #ffffff;
+        ">
+          <div
+            v-if="viewSummaryTaskRecord?.taskSummary"
+            style="
+              white-space: pre-wrap;
+              line-height: 1.8;
+              font-size: 16px;
+              color: #333;
+              word-wrap: break-word;
+              word-break: break-all;
+              max-width: none;
+              letter-spacing: 0.5px;
+            "
+          >
+            {{ viewSummaryTaskRecord.taskSummary }}
+          </div>
+          <div v-else style="
+            color: #bfbfbf;
+            font-style: italic;
+            text-align: center;
+            padding: 60px 20px;
+            font-size: 18px;
+          ">
+            <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+            <div>暂无任务总结</div>
+            <div style="font-size: 14px; margin-top: 8px; color: #999;">
+              该任务尚未添加总结内容
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部操作区域 -->
+        <div style="
+          padding: 16px 32px;
+          background-color: #fafafa;
+          border-top: 1px solid #e8e8e8;
+          text-align: center;
+          flex-shrink: 0;
+        ">
+          <a-button @click="fullscreenSummaryModalVisible = false" size="large">
+            关闭全屏
+          </a-button>
+          <div style="margin-top: 8px; color: #999; font-size: 12px;">
+            按 ESC 键或点击右上角 ✕ 也可关闭全屏
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -421,7 +749,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { RollbackOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, RedoOutlined } from '@ant-design/icons-vue'
+import { RollbackOutlined, PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, RedoOutlined, PlayCircleOutlined, PercentageOutlined, EyeOutlined, FullscreenOutlined } from '@ant-design/icons-vue'
 import type { FormInstance } from 'ant-design-vue'
 
 // 添加详细的调试日志
@@ -477,6 +805,12 @@ const taskColumns = [
     width: 120
   },
   {
+    title: '质量等级',
+    dataIndex: 'qualityGrade',
+    key: 'qualityGrade',
+    width: 90
+  },
+  {
     title: '优先级',
     dataIndex: 'priority',
     key: 'priority',
@@ -513,10 +847,17 @@ const taskColumns = [
     width: 100
   },
   {
+    title: '任务总结',
+    dataIndex: 'taskSummary',
+    key: 'taskSummary',
+    width: 200,
+    ellipsis: true
+  },
+  {
     title: '操作',
     key: 'action',
     fixed: 'right',
-    width: 150
+    width: 200
   }
 ]
 
@@ -617,7 +958,9 @@ const modalForm = reactive<FocusTask>({
   planEndDate: undefined,
   actualStartDate: undefined,
   actualEndDate: undefined,
-  progressRate: 0
+  progressRate: 0,
+  qualityGrade: undefined,
+  taskSummary: ''
 })
 
 // 表单验证规则
@@ -635,13 +978,32 @@ const statusTimeModalTitle = ref<string>('')
 const statusTimeValue = ref<string>()
 const pendingStatusChange = ref<{ record: FocusTask, newStatus: string } | null>(null)
 
+// ========== 进度修改弹窗相关 ==========
+const progressModalVisible = ref<boolean>(false)
+const progressModalLoading = ref<boolean>(false)
+const progressValue = ref<number>(0)
+const currentTaskRecord = ref<FocusTask | null>(null)
+
+// ========== 任务总结编辑弹窗相关 ==========
+const summaryModalVisible = ref<boolean>(false)
+const summaryModalLoading = ref<boolean>(false)
+const summaryValue = ref<string>('')
+const summaryQualityGrade = ref<string>('')
+
+// ========== 任务总结查看弹窗相关 ==========
+const viewSummaryModalVisible = ref<boolean>(false)
+const viewSummaryTaskRecord = ref<FocusTask | null>(null)
+
+// ========== 全屏任务总结弹窗相关 ==========
+const fullscreenSummaryModalVisible = ref<boolean>(false)
+
 // 加载目标详情和任务列表
 const loadData = async () => {
   console.log('开始 loadData 函数')
   try {
     const goalId = route.params.id as string
     console.log('目标ID:', goalId)
-    
+
     if (!goalId) {
       console.error('目标ID不存在')
       message.error('目标ID不存在')
@@ -796,7 +1158,9 @@ const handleAdd = () => {
     planEndDate: undefined,
     actualStartDate: undefined,
     actualEndDate: undefined,
-    progressRate: 0
+    progressRate: 0,
+    qualityGrade: undefined,
+    taskSummary: ''
   })
   selectedTagIds.value = []
   tagSearchValue.value = ''
@@ -965,7 +1329,9 @@ const updateTaskStatus = async (record: FocusTask, newStatus: string, timeValue?
       planEndDate: record.planEndDate,
       actualStartDate: record.actualStartDate,
       actualEndDate: record.actualEndDate,
-      progressRate: record.progressRate
+      progressRate: record.progressRate,
+      qualityGrade: record.qualityGrade,
+      taskSummary: record.taskSummary
     }
 
     // 如果是进行中，设置实际开始时间
@@ -974,7 +1340,7 @@ const updateTaskStatus = async (record: FocusTask, newStatus: string, timeValue?
     }
 
     // 如果是已完成，设置实际结束时间和进度 100%
-    if (newStatus === 'done') {
+    if (newStatus === 'done' || newStatus === 'completedOverdue') {
       if (timeValue) {
         updateData.actualEndDate = timeValue
       }
@@ -1071,6 +1437,160 @@ const resetSearch = () => {
   searchForm.planStartDate = undefined
   searchForm.planEndDate = undefined
   taskList.value = [...allTaskList.value]
+}
+
+// ========== 新增的任务操作函数 ==========
+
+// 开始任务
+const handleStartTask = (record: FocusTask) => {
+  statusTimeModalTitle.value = '请输入实际开始时间'
+  statusTimeValue.value = dayjs().format('YYYY-MM-DD HH:mm:ss') // 默认当前时间
+  pendingStatusChange.value = { record, newStatus: 'in_progress' }
+  statusTimeModalVisible.value = true
+}
+
+// 修改进度
+const handleUpdateProgress = (record: FocusTask) => {
+  currentTaskRecord.value = record
+  progressValue.value = record.progressRate || 0
+  progressModalVisible.value = true
+}
+
+// 查看详情（完成状态任务）
+const handleViewDetail = (record: FocusTask) => {
+  handleEdit(record) // 复用编辑逻辑，但可以设为只读模式
+}
+
+// 进度弹窗确认
+const handleProgressModalOk = async () => {
+  if (!currentTaskRecord.value) {
+    return
+  }
+
+  progressModalLoading.value = true
+  try {
+    const updateData: FocusTask = {
+      id: currentTaskRecord.value.id,
+      title: currentTaskRecord.value.title,
+      goalId: currentTaskRecord.value.goalId,
+      weight: currentTaskRecord.value.weight,
+      priority: currentTaskRecord.value.priority,
+      planStartDate: currentTaskRecord.value.planStartDate,
+      planEndDate: currentTaskRecord.value.planEndDate,
+      actualStartDate: currentTaskRecord.value.actualStartDate,
+      actualEndDate: currentTaskRecord.value.actualEndDate,
+      status: currentTaskRecord.value.status,
+      progressRate: progressValue.value
+    }
+
+    // 如果进度达到100%，需要处理完成逻辑
+    if (progressValue.value === 100) {
+      // 关闭进度弹窗，打开完成时间输入弹窗
+      progressModalVisible.value = false
+      statusTimeModalTitle.value = '请输入实际完成时间'
+      statusTimeValue.value = dayjs().format('YYYY-MM-DD HH:mm:ss')
+
+      // 判断是否逾期
+      const isOverdue = currentTaskRecord.value.planEndDate &&
+                       dayjs().isAfter(dayjs(currentTaskRecord.value.planEndDate))
+
+      pendingStatusChange.value = {
+        record: { ...updateData },
+        newStatus: isOverdue ? 'completedOverdue' : 'done'
+      }
+      statusTimeModalVisible.value = true
+      return
+    }
+
+    // 如果进度未达到100%，直接更新进度
+    const result = await saveFocusTask(updateData)
+    if (result.code === 200 && result.data) {
+      message.success('进度更新成功')
+      progressModalVisible.value = false
+      loadData()
+    } else {
+      message.error(result.msg || '进度更新失败')
+    }
+  } catch (err) {
+    console.error('更新任务进度失败:', err)
+    message.error('进度更新失败')
+  } finally {
+    progressModalLoading.value = false
+  }
+}
+
+// 进度弹窗取消
+const handleProgressModalCancel = () => {
+  progressModalVisible.value = false
+  progressValue.value = 0
+  currentTaskRecord.value = null
+}
+
+// 编辑任务总结
+const handleEditSummary = (record: FocusTask) => {
+  currentTaskRecord.value = record
+  summaryValue.value = record.taskSummary || ''
+  summaryQualityGrade.value = record.qualityGrade || ''
+  summaryModalVisible.value = true
+}
+
+// 任务总结弹窗确认
+const handleSummaryModalOk = async () => {
+  if (!currentTaskRecord.value) {
+    return
+  }
+
+  summaryModalLoading.value = true
+  try {
+    const updateData: FocusTask = {
+      id: currentTaskRecord.value.id,
+      title: currentTaskRecord.value.title,
+      goalId: currentTaskRecord.value.goalId,
+      weight: currentTaskRecord.value.weight,
+      priority: currentTaskRecord.value.priority,
+      planStartDate: currentTaskRecord.value.planStartDate,
+      planEndDate: currentTaskRecord.value.planEndDate,
+      actualStartDate: currentTaskRecord.value.actualStartDate,
+      actualEndDate: currentTaskRecord.value.actualEndDate,
+      status: currentTaskRecord.value.status,
+      progressRate: currentTaskRecord.value.progressRate,
+      qualityGrade: summaryQualityGrade.value,
+      taskSummary: summaryValue.value
+    }
+
+    const result = await saveFocusTask(updateData)
+    if (result.code === 200 && result.data) {
+      message.success('任务总结更新成功')
+      summaryModalVisible.value = false
+      loadData()
+    } else {
+      message.error(result.msg || '任务总结更新失败')
+    }
+  } catch (err) {
+    console.error('更新任务总结失败:', err)
+    message.error('任务总结更新失败')
+  } finally {
+    summaryModalLoading.value = false
+  }
+}
+
+// 任务总结弹窗取消
+const handleSummaryModalCancel = () => {
+  summaryModalVisible.value = false
+  summaryValue.value = ''
+  summaryQualityGrade.value = ''
+  currentTaskRecord.value = null
+}
+
+// 查看任务总结详情
+const handleViewTaskSummary = (record: FocusTask) => {
+  viewSummaryTaskRecord.value = record
+  viewSummaryModalVisible.value = true
+}
+
+// 全屏查看任务总结
+const handleFullscreenSummary = () => {
+  fullscreenSummaryModalVisible.value = true
 }
 
 // 页面加载时获取数据

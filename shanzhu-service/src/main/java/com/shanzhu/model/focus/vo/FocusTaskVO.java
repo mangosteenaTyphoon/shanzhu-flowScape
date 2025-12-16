@@ -84,6 +84,16 @@ public class FocusTaskVO {
      */
     private Integer actualConsumedSec;
 
+    /**
+     * 任务质量等级（A=优秀, B=良好, C=合格, D=不及格）
+     */
+    private String qualityGrade;
+
+    /**
+     * 任务总结
+     */
+    private String taskSummary;
+
     // ============ 以下为额外的展示字段 ============
 
     /**
