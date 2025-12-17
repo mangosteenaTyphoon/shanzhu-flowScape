@@ -274,7 +274,7 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
      * 计算目标综合评分
      *
      * @param goalId 目标ID
-     * @return 目标评分（满分4分制）
+     * @return 目标评分（百分制，范围 0-100）
      */
     public Double calculateGoalScore(Long goalId) {
         try {
@@ -319,8 +319,8 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
                         task.getTitle(), weight, qualityScore, timeCoefficient, taskScore);
             }
 
-            // 确保评分在合理范围内 [0, 4]
-            totalScore = Math.max(0.0, Math.min(4.0, totalScore));
+            // 确保评分在合理范围内 [0, 100]
+            totalScore = Math.max(0.0, Math.min(100.0, totalScore));
 
             log.info("目标{}评分计算完成，最终评分: {}", goalId, totalScore);
             return totalScore;
@@ -335,11 +335,11 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
      * 获取质量等级对应的分数
      *
      * @param qualityGrade 质量等级 (A/B/C/D)
-     * @return 对应分数
+     * @return 对应分数（百分制）
      */
     private double getQualityScore(String qualityGrade) {
         if (qualityGrade == null || qualityGrade.trim().isEmpty()) {
-            return taskScoreConfig.getQualityGrade().getOrDefault("C", 2.0);
+            return taskScoreConfig.getQualityGrade().getOrDefault("C", 50.0);
         }
 
         String grade = qualityGrade.toUpperCase();
@@ -348,7 +348,7 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
             return score;
         }
 
-        Double defaultScore = taskScoreConfig.getQualityGrade().getOrDefault("C", 2.0);
+        Double defaultScore = taskScoreConfig.getQualityGrade().getOrDefault("C", 50.0);
         log.warn("未知的质量等级: {}, 使用默认分数{}", qualityGrade, defaultScore);
         return defaultScore;
     }

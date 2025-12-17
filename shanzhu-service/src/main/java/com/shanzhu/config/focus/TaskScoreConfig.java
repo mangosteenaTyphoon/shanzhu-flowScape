@@ -17,14 +17,14 @@ import java.util.Map;
 public class TaskScoreConfig {
 
     /**
-     * 质量等级分数映射
-     * A=4.0, B=3.0, C=2.0, D=1.0
+     * 质量等级分数映射（百分制）
+     * 建议配置：A=100.0, B=75.0, C=50.0, D=25.0
      */
     private Map<String, Double> qualityGrade = new HashMap<>();
 
     /**
-     * 任务状态分数映射
-     * done=1.0, completedOverdueAllowed=0.9, completedOverdue=0.8, incompleteOverdue=0.5
+     * 任务状态时效系数映射（0-1之间的系数）
+     * 建议配置：done=1.0, completedOverdueAllowed=0.9, completedOverdue=0.8, incompleteOverdue=0.5
      */
     private Map<String, Double> status = new HashMap<>();
 }
