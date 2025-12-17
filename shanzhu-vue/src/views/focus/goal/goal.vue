@@ -494,12 +494,12 @@ const columns = ref([
 
 // 表格选择功能
 const selectedRowKeys = ref<(string | number)[]>([])
-const rowSelection: TableProps['rowSelection'] = {
+const rowSelection = computed<TableProps['rowSelection']>(() => ({
   selectedRowKeys: selectedRowKeys.value,
   onChange: (selectedKeys: (string | number)[]) => {
     selectedRowKeys.value = selectedKeys
   }
-}
+}))
 
 // 删除确认框相关
 const openDeletePopconfirm = ref<boolean>(false)
