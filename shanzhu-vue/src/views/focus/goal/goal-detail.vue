@@ -63,12 +63,12 @@
             <!-- 目标评分显示 -->
             <a-descriptions-item label="目标评分">
               <div v-if="detailData.goalScore !== null && detailData.goalScore !== undefined">
-                <a-rate :value="detailData.goalScore" disabled allow-half style="font-size: 16px" />
-                <span style="margin-left: 8px; font-weight: bold; color: #1890ff">
-                  {{ detailData.goalScore.toFixed(2) }}/4.00
+                <a-rate :value="detailData.goalScore / 20" disabled allow-half style="font-size: 16px" />
+                <span style="margin-left: 8px; font-weight: bold; color: #1890ff; font-size: 18px">
+                  {{ detailData.goalScore.toFixed(0) }}/100
                 </span>
                 <span style="margin-left: 8px; color: #666">
-                  ({{ ((detailData.goalScore / 4) * 100).toFixed(1) }}%)
+                  ({{ detailData.goalScore >= 90 ? '优秀' : detailData.goalScore >= 75 ? '良好' : detailData.goalScore >= 60 ? '合格' : '待改进' }})
                 </span>
               </div>
               <div v-else style="color: #999">
@@ -818,8 +818,8 @@
           <a-alert
             type="info"
             show-icon
-            :message="`当前目标评分：${detailData.goalScore.toFixed(2)}/4.00 (${((detailData.goalScore / 4) * 100).toFixed(1)}%)`"
-            :description="`评分基于任务权重、质量等级和时效系数自动计算。任务完成质量越高、按时完成率越好，目标评分越高。`"
+            :message="`当前目标评分：${detailData.goalScore.toFixed(0)}/100 (${detailData.goalScore >= 90 ? '优秀' : detailData.goalScore >= 75 ? '良好' : detailData.goalScore >= 60 ? '合格' : '待改进'})`"
+            :description="`评分基于任务权重、质量等级和时效系数自动计算。任务完成质量越高、按时完成率越好，目标评分越高。满分100分。`"
           />
         </a-form-item>
       </a-form>

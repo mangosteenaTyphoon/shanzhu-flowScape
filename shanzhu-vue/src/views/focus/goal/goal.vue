@@ -126,7 +126,12 @@
           </template>
           <template v-else-if="column.key === 'action'">
             <a-space size="small">
-              <a-button type="link" size="small" @click="(event: MouseEvent) => handleDetailClick(event, record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="(event: MouseEvent) => handleDetailClick(event, record)"
+                :disabled="record.status === 'draft'"
+              >
                 <template #icon>
                   <EyeOutlined />
                 </template>
@@ -229,46 +234,41 @@
           </div>
         </a-form-item>
         <a-form-item label="目标标签" name="tagIds">
-          <a-input-group compact>
-            <a-select
-              v-model:value="selectedTagIds"
-              mode="multiple"
-              placeholder="请选择标签（可多选）"
-              :options="tagList.map(t => ({ value: t.id, label: t.name }))"
-              @change="handleTagChange"
-              allow-clear
-              style="width: calc(100% - 80px)"
-              :loading="tagLoading"
-              :show-search="true"
-              :filter-option="(input: string, option: any) => option.label.toLowerCase().includes(input.toLowerCase())"
+          <a-select
+            v-model:value="selectedTagIds"
+            mode="multiple"
+            placeholder="请选择标签"
+            :loading="tagLoading"
+            allow-clear
+            @change="handleTagChange"
+          >
+            <template #dropdownRender="{ menuNode: menu }">
+              <div>
+                <component :is="menu" />
+                <a-divider style="margin: 4px 0" />
+                <div style="padding: 8px; display: flex; gap: 8px">
+                  <a-input
+                    v-model:value="tagSearchValue"
+                    placeholder="输入新标签名称"
+                    @pressEnter="handleTagAdd"
+                  />
+                  <a-button type="primary" @click="handleTagAdd">
+                    <template #icon>
+                      <PlusOutlined />
+                    </template>
+                    新增
+                  </a-button>
+                </div>
+              </div>
+            </template>
+            <a-select-option
+              v-for="tag in tagList"
+              :key="tag.id"
+              :value="tag.id"
             >
-              <template #notFoundContent>
-                <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无数据" />
-              </template>
-            </a-select>
-            <a-input
-              v-model:value="tagSearchValue"
-              placeholder="新标签名"
-              style="width: calc(100% - 160px); display: none"
-            />
-            <a-button type="primary" @click="handleTagAdd" style="width: 80px" :loading="tagLoading">
-              <template #icon>
-                <PlusOutlined />
-              </template>
-              新增
-            </a-button>
-          </a-input-group>
-          <div style="margin-top: 8px">
-            <a-input
-              v-model:value="tagSearchValue"
-              placeholder="输入新标签名称"
-              style="width: calc(100% - 88px); margin-right: 8px"
-              @pressEnter="handleTagAdd"
-            />
-          </div>
-          <div style="margin-top: 4px; color: #999; font-size: 12px">
-            💡 提示：可输入新标签名称后点击"新增"按钮快速创建，支持多选
-          </div>
+              <a-tag :color="tag.color">{{ tag.name }}</a-tag>
+            </a-select-option>
+          </a-select>
         </a-form-item>
         <a-row>
           <a-col :span="12">
@@ -282,47 +282,6 @@
             </a-form-item>
           </a-col>
         </a-row>
-        <!-- 状态不可选择，通过按钮控制 -->
-        <!-- 进度由子任务自动计算，不可手动编辑 -->
-        <a-form-item label="目标进度">
-          <a-progress :percent="modalForm.finalProgress || 0" />
-          <div style="margin-top: 4px; color: #999; font-size: 12px">
-            💡 提示：进度由关联的子任务自动计算，无子任务时进度为 0%
-          </div>
-        </a-form-item>
-        <!-- 统计信息展示（只读） -->
-        <a-form-item label="延期状态">
-          <a-tag v-if="modalForm.hasDelayedTasks" color="error">有延期任务</a-tag>
-          <a-tag v-else color="success">无延期任务</a-tag>
-        </a-form-item>
-        <a-row>
-          <a-col :span="12">
-            <a-form-item label="预期时长" :label-col="{span: 8}">
-              <span>{{ formatDuration(modalForm.expectedDurationSec) }}</span>
-              <div style="margin-top: 4px; color: #999; font-size: 12px">
-                💡 所有子任务预期时长之和
-              </div>
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="实际时长" :label-col="{span: 8}">
-              <span>{{ formatDuration(modalForm.actualDurationSec) }}</span>
-              <div style="margin-top: 4px; color: #999; font-size: 12px">
-                💡 所有子任务实际时长之和
-              </div>
-            </a-form-item>
-          </a-col>
-        </a-row>
-        <a-form-item label="超期时长">
-          <span v-if="modalForm.overdueCompletionTimeSec && modalForm.overdueCompletionTimeSec > 0"
-                style="color: #ff4d4f; font-weight: bold">
-            {{ formatDuration(modalForm.overdueCompletionTimeSec) }}
-          </span>
-          <span v-else style="color: #52c41a">无超期</span>
-          <div style="margin-top: 4px; color: #999; font-size: 12px">
-            💡 实际时长 - 预期时长
-          </div>
-        </a-form-item>
       </a-form>
 
       <template #footer>
@@ -394,6 +353,7 @@ interface FocusGoal {
   title?: string
   description?: string
   categoryId?: number
+  tagIds?: any[]
   startDate?: string
   endDate?: string
   status?: string
@@ -810,6 +770,11 @@ const handleEdit = async (record: FocusGoal) => {
   modalVisible.value = true
 
   try {
+    // 先确保标签列表已加载
+    if (tagList.value.length === 0) {
+      await fetchTagList()
+    }
+
     const response = await getFocusGoal(record.id!)
     Object.assign(modalForm, response.data)
 
@@ -821,12 +786,39 @@ const handleEdit = async (record: FocusGoal) => {
       categorySearchValue.value = ''
     }
 
-    // 设置已选中的标签（将字符串数组转换为数字数组）
+    // 设置已选中的标签
+    console.log('=== 开始设置标签 ===')
+    console.log('后端返回的 tagIds:', response.data.tagIds)
+    console.log('当前标签列表:', tagList.value)
+
     if (response.data.tagIds && response.data.tagIds.length > 0) {
-      selectedTagIds.value = response.data.tagIds.map((id: string) => Number(id))
+      // 确保 tagList 中的 id 类型
+      console.log('tagList 第一个元素的 id 类型:', typeof tagList.value[0]?.id)
+
+      // 根据 tagList 中的 id 类型来转换 selectedTagIds
+      const firstTagId = tagList.value[0]?.id
+      if (typeof firstTagId === 'number') {
+        // 如果 tagList 中的 id 是数字，则转换为数字数组
+        selectedTagIds.value = response.data.tagIds.map((id: any) => {
+          const numId = typeof id === 'number' ? id : Number(id)
+          console.log('标签ID转换（转为数字）:', id, '->', numId)
+          return numId
+        })
+      } else {
+        // 如果 tagList 中的 id 是字符串，则转换为字符串数组
+        selectedTagIds.value = response.data.tagIds.map((id: any) => {
+          const strId = String(id)
+          console.log('标签ID转换（转为字符串）:', id, '->', strId)
+          return strId
+        })
+      }
+      console.log('最终设置的 selectedTagIds:', selectedTagIds.value)
     } else {
       selectedTagIds.value = []
     }
+
+    // 清空标签搜索值
+    tagSearchValue.value = ''
 
     // 处理日期格式
     if (response.data.startDate) {
