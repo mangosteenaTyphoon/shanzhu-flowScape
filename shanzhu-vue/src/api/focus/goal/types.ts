@@ -18,6 +18,8 @@ export interface FocusGoal {
   expectedDurationSec?: number
   actualDurationSec?: number
   overdueCompletionTimeSec?: number
+  goalScore?: number // 目标综合评分（满分4分制）
+  goalSummary?: string // 目标执行总结
   createdAt?: string
   updatedAt?: string
   tagIds?: string[] // 标签ID数组（用于保存）

@@ -59,6 +59,56 @@
               </span>
               <span v-else style="color: #52c41a">无超期</span>
             </a-descriptions-item>
+
+            <!-- 目标评分显示 -->
+            <a-descriptions-item label="目标评分">
+              <div v-if="detailData.goalScore !== null && detailData.goalScore !== undefined">
+                <a-rate :value="detailData.goalScore" disabled allow-half style="font-size: 16px" />
+                <span style="margin-left: 8px; font-weight: bold; color: #1890ff">
+                  {{ detailData.goalScore.toFixed(2) }}/4.00
+                </span>
+                <span style="margin-left: 8px; color: #666">
+                  ({{ ((detailData.goalScore / 4) * 100).toFixed(1) }}%)
+                </span>
+              </div>
+              <div v-else style="color: #999">
+                <span>未评分</span>
+                <a-tooltip title="目标状态为已完成时自动计算评分">
+                  <QuestionCircleOutlined style="margin-left: 4px" />
+                </a-tooltip>
+              </div>
+            </a-descriptions-item>
+
+            <!-- 目标总结 -->
+            <a-descriptions-item label="目标总结" :span="2">
+              <div style="display: flex; align-items: flex-start; justify-content: space-between">
+                <div style="flex: 1">
+                  <div v-if="detailData.goalSummary" style="margin-top: 4px">
+                    <a-typography-paragraph
+                      :ellipsis="{ rows: 3, expandable: true, symbol: '展开' }"
+                      style="margin-bottom: 0"
+                    >
+                      {{ detailData.goalSummary }}
+                    </a-typography-paragraph>
+                  </div>
+                  <div v-else style="color: #999">
+                    <span v-if="detailData.status === 'completed'">
+                      点击右侧按钮添加目标总结
+                    </span>
+                    <span v-else>目标完成后可添加总结</span>
+                  </div>
+                </div>
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleEditGoalSummary"
+                  v-if="detailData.status === 'completed'"
+                  style="margin-left: 16px"
+                >
+                  <EditOutlined /> {{ detailData.goalSummary ? '编辑总结' : '添加总结' }}
+                </a-button>
+              </div>
+            </a-descriptions-item>
           </a-descriptions>
         </a-card>
 
@@ -739,6 +789,41 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- 目标总结编辑弹窗 -->
+    <a-modal
+      v-model:open="goalSummaryModalVisible"
+      title="编辑目标总结"
+      :confirm-loading="goalSummaryModalLoading"
+      @ok="handleGoalSummaryModalOk"
+      @cancel="handleGoalSummaryModalCancel"
+      :width="700"
+    >
+      <a-form layout="vertical">
+        <a-form-item
+          label="目标总结"
+          :rules="[{ max: 500, message: '总结内容不能超过500字符' }]"
+        >
+          <a-textarea
+            v-model:value="goalSummaryValue"
+            placeholder="请输入目标总结，包括：&#10;1. 目标达成情况&#10;2. 遇到的问题和挑战&#10;3. 解决方案和改进措施&#10;4. 经验教训和心得体会&#10;5. 对未来的规划和建议"
+            :rows="8"
+            :maxlength="500"
+            show-count
+          />
+        </a-form-item>
+
+        <!-- 评分说明 -->
+        <a-form-item v-if="detailData.goalScore">
+          <a-alert
+            type="info"
+            show-icon
+            :message="`当前目标评分：${detailData.goalScore.toFixed(2)}/4.00 (${((detailData.goalScore / 4) * 100).toFixed(1)}%)`"
+            :description="`评分基于任务权重、质量等级和时效系数自动计算。任务完成质量越高、按时完成率越好，目标评分越高。`"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -754,7 +839,7 @@ import type { FormInstance } from 'ant-design-vue'
 console.log('=== Goal Detail 组件开始加载 ===')
 
 // API引入
-import { getFocusGoal } from '@/api/focus/goal'
+import { getFocusGoal, saveFocusGoal } from '@/api/focus/goal'
 import { getFocusTaskList, getFocusTask, saveFocusTask, deleteFocusTask } from '@/api/focus/task'
 import type { FocusTask } from '@/api/focus/task/types'
 import { listFocusTag, saveFocusTag } from '@/api/focus/tag'
@@ -1012,6 +1097,11 @@ const viewSummaryTaskRecord = ref<FocusTask | null>(null)
 
 // ========== 全屏任务总结弹窗相关 ==========
 const fullscreenSummaryModalVisible = ref<boolean>(false)
+
+// ========== 目标总结编辑弹窗相关 ==========
+const goalSummaryModalVisible = ref<boolean>(false)
+const goalSummaryModalLoading = ref<boolean>(false)
+const goalSummaryValue = ref<string>('')
 
 // 加载目标详情和任务列表
 const loadData = async () => {
@@ -1644,6 +1734,56 @@ const handleViewTaskSummary = (record: FocusTask) => {
 // 全屏查看任务总结
 const handleFullscreenSummary = () => {
   fullscreenSummaryModalVisible.value = true
+}
+
+// 编辑目标总结
+const handleEditGoalSummary = () => {
+  goalSummaryValue.value = detailData.value.goalSummary || ''
+  goalSummaryModalVisible.value = true
+}
+
+// 目标总结弹窗确认
+const handleGoalSummaryModalOk = async () => {
+  goalSummaryModalLoading.value = true
+  try {
+    const updateData: FocusGoal = {
+      id: detailData.value.id,
+      title: detailData.value.title,
+      description: detailData.value.description,
+      categoryId: detailData.value.categoryId,
+      startDate: detailData.value.startDate,
+      endDate: detailData.value.endDate,
+      status: detailData.value.status,
+      finalProgress: detailData.value.finalProgress,
+      completionStatus: detailData.value.completionStatus,
+      hasDelayedTasks: detailData.value.hasDelayedTasks,
+      expectedDurationSec: detailData.value.expectedDurationSec,
+      actualDurationSec: detailData.value.actualDurationSec,
+      overdueCompletionTimeSec: detailData.value.overdueCompletionTimeSec,
+      goalScore: detailData.value.goalScore,
+      goalSummary: goalSummaryValue.value
+    }
+
+    const result = await saveFocusGoal(updateData)
+    if (result.code === 200 && result.data) {
+      message.success('目标总结更新成功')
+      goalSummaryModalVisible.value = false
+      await loadData() // 重新加载数据
+    } else {
+      message.error(result.msg || '目标总结更新失败')
+    }
+  } catch (err) {
+    console.error('更新目标总结失败:', err)
+    message.error('目标总结更新失败')
+  } finally {
+    goalSummaryModalLoading.value = false
+  }
+}
+
+// 目标总结弹窗取消
+const handleGoalSummaryModalCancel = () => {
+  goalSummaryModalVisible.value = false
+  goalSummaryValue.value = ''
 }
 
 // 页面加载时获取数据

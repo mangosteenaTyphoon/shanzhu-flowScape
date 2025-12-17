@@ -85,4 +85,14 @@ public class FocusGoalSaveDTO implements Serializable {
      * 标签ID数组
      */
     private String[] tagIds;
+
+    /**
+     * 目标综合评分（满分4，可根据权重和任务表现计算）
+     */
+    private Double goalScore;
+
+    /**
+     * 目标执行总结（文字描述目标达成情况、问题、改进措施等）
+     */
+    private String goalSummary;
 }

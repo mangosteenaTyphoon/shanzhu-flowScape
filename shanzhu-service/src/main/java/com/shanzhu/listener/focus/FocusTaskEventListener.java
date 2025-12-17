@@ -48,6 +48,9 @@ public class FocusTaskEventListener {
                 // 更新目标状态
                 updateGoalStatus(event.getGoalId());
 
+                // 🚀 新增：重新计算目标评分（当任务状态发生变化时）
+                recalculateGoalScore(event.getGoalId());
+
                 log.info("✅ 目标自动同步完成: goalId={}", event.getGoalId());
             }
         } catch (Exception e) {
@@ -306,5 +309,41 @@ public class FocusTaskEventListener {
                         "待办".equals(status) ||
                         "未开始".equals(status)
         );
+    }
+
+    /**
+     * 🚀 新增：重新计算目标评分
+     * 当任务状态发生变化时，自动重新计算目标评分
+     */
+    private void recalculateGoalScore(Long goalId) {
+        try {
+            // 获取目标信息
+            FocusGoalDO goal = focusGoalService.getById(goalId);
+            if (goal == null) {
+                log.warn("目标不存在，跳过评分计算: goalId={}", goalId);
+                return;
+            }
+
+            // 调用目标服务的评分计算方法
+            if (focusGoalService instanceof com.shanzhu.service.focus.impl.FocusGoalServiceImpl) {
+                com.shanzhu.service.focus.impl.FocusGoalServiceImpl goalServiceImpl =
+                        (com.shanzhu.service.focus.impl.FocusGoalServiceImpl) focusGoalService;
+
+                Double newScore = goalServiceImpl.calculateGoalScore(goalId);
+
+                if (newScore != null && !newScore.equals(goal.getGoalScore())) {
+                    goal.setGoalScore(newScore);
+                    focusGoalService.updateById(goal);
+
+                    log.info("🎯 目标评分已重新计算: goalId={}, oldScore={}, newScore={}",
+                            goalId, goal.getGoalScore(), newScore);
+                } else {
+                    log.debug("目标评分无变化: goalId={}, score={}", goalId, newScore);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("❌ 重新计算目标评分失败: goalId={}, error={}", goalId, e.getMessage(), e);
+        }
     }
 }

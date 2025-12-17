@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shanzhu.entity.focus.FocusCategoryDO;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTagDO;
+import com.shanzhu.entity.focus.FocusTaskDO;
 import com.shanzhu.mapper.focus.FocusGoalMapper;
 import com.shanzhu.model.focus.dto.FocusGoalDTO;
 import com.shanzhu.model.focus.dto.FocusGoalSaveDTO;
@@ -16,10 +17,12 @@ import com.shanzhu.service.focus.FocusCategoryService;
 import com.shanzhu.service.focus.FocusGoalService;
 import com.shanzhu.service.focus.FocusTagRelService;
 import com.shanzhu.service.focus.FocusTagService;
+import com.shanzhu.service.focus.FocusTaskService;
 import com.shanzhu.utils.security.LoginUserContext;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -44,6 +47,10 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
 
     @Resource
     private FocusTagService focusTagService;
+
+    @Resource
+    @Lazy
+    private FocusTaskService focusTaskService;
 
     @Override
     public IPage<FocusGoalVO> queryPage(FocusGoalDTO focusGoalDTO) {
@@ -200,6 +207,15 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
 
         if (result) {
             createTagRelations(focusGoalDO.getId(), focusGoalSaveDTO.getTagIds());
+
+            // 如果目标状态为已完成，计算目标评分
+            if ("completed".equals(focusGoalSaveDTO.getStatus())) {
+                Double goalScore = calculateGoalScore(focusGoalDO.getId());
+                if (goalScore != null) {
+                    focusGoalDO.setGoalScore(goalScore);
+                    this.updateById(focusGoalDO);
+                }
+            }
         }
         return result;
     }
@@ -248,5 +264,122 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
                 .in(FocusGoalDO::getId, ids)
                 .eq(FocusGoalDO::getUserId, LoginUserContext.getUserId());
         this.remove(queryWrapper);
+    }
+
+    /**
+     * 计算目标综合评分
+     *
+     * @param goalId 目标ID
+     * @return 目标评分（满分4分制）
+     */
+    public Double calculateGoalScore(Long goalId) {
+        try {
+            // 查询目标下的所有任务
+            QueryWrapper<FocusTaskDO> taskQueryWrapper = new QueryWrapper<>();
+            taskQueryWrapper.lambda().eq(FocusTaskDO::getGoalId, goalId);
+            List<FocusTaskDO> tasks = focusTaskService.list(taskQueryWrapper);
+
+            if (tasks == null || tasks.isEmpty()) {
+                log.warn("目标{}下没有任务，无法计算评分", goalId);
+                return 0.0;
+            }
+
+            // 计算总权重（用于权重归一化）
+            int totalWeight = tasks.stream()
+                    .mapToInt(task -> task.getWeight() != null ? task.getWeight() : 0)
+                    .sum();
+
+            if (totalWeight == 0) {
+                log.warn("目标{}下任务总权重为0，无法计算评分", goalId);
+                return 0.0;
+            }
+
+            // 计算加权评分 Σ(wi × qi × pi)
+            double totalScore = 0.0;
+
+            for (FocusTaskDO task : tasks) {
+                // wi = 权重百分比转小数（归一化处理）
+                double weight = (task.getWeight() != null ? task.getWeight() : 0) / (double) totalWeight;
+
+                // qi = 质量分数
+                double qualityScore = getQualityScore(task.getQualityGrade());
+
+                // pi = 时效系数
+                double timeCoefficient = getTimeCostCoefficient(task.getStatus());
+
+                // 计算当前任务贡献分
+                double taskScore = weight * qualityScore * timeCoefficient;
+                totalScore += taskScore;
+
+                log.debug("任务{}评分计算: 权重={}, 质量分={}, 时效系数={}, 贡献分={}",
+                        task.getTitle(), weight, qualityScore, timeCoefficient, taskScore);
+            }
+
+            // 确保评分在合理范围内 [0, 4]
+            totalScore = Math.max(0.0, Math.min(4.0, totalScore));
+
+            log.info("目标{}评分计算完成，最终评分: {}", goalId, totalScore);
+            return totalScore;
+
+        } catch (Exception e) {
+            log.error("计算目标{}评分时出现异常", goalId, e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取质量等级对应的分数
+     *
+     * @param qualityGrade 质量等级 (A/B/C/D)
+     * @return 对应分数
+     */
+    private double getQualityScore(String qualityGrade) {
+        if (qualityGrade == null || qualityGrade.trim().isEmpty()) {
+            return 2.0; // 默认为C级（合格）
+        }
+
+        switch (qualityGrade.toUpperCase()) {
+            case "A":
+                return 4.0; // 优秀
+            case "B":
+                return 3.0; // 良好
+            case "C":
+                return 2.0; // 合格
+            case "D":
+                return 1.0; // 不及格
+            default:
+                log.warn("未知的质量等级: {}, 使用默认分数2.0", qualityGrade);
+                return 2.0;
+        }
+    }
+
+    /**
+     * 获取任务状态对应的时效系数
+     *
+     * @param status 任务状态
+     * @return 时效系数
+     */
+    private double getTimeCostCoefficient(String status) {
+        if (status == null || status.trim().isEmpty()) {
+            return 0.5; // 默认为最低系数
+        }
+
+        switch (status.toLowerCase()) {
+            case "done":
+                return 1.0; // 按时完成
+            case "completedoverduealllowed":
+                return 0.9; // 超时完成（可接受范围内）
+            case "completedoverdue":
+                return 0.8; // 逾期完成
+            case "incompleteoverdue":
+            case "cancelled":
+                return 0.5; // 逾期未完成或已取消
+            case "todo":
+            case "in_progress":
+                return 0.5; // 未完成状态
+            default:
+                log.warn("未知的任务状态: {}, 使用默认时效系数0.5", status);
+                return 0.5;
+        }
     }
 }

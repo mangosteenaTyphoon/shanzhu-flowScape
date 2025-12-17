@@ -117,4 +117,14 @@ public class FocusGoalVO {
      * 如：56分钟 或 2.5小时
      */
     private String actualDuration;
+
+    /**
+     * 目标综合评分（满分4，可根据权重和任务表现计算）
+     */
+    private Double goalScore;
+
+    /**
+     * 目标执行总结（文字描述目标达成情况、问题、改进措施等）
+     */
+    private String goalSummary;
 }
