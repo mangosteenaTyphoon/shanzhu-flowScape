@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.shanzhu.config.focus.TaskScoreConfig;
 import com.shanzhu.entity.focus.FocusCategoryDO;
 import com.shanzhu.entity.focus.FocusGoalDO;
 import com.shanzhu.entity.focus.FocusTagDO;
@@ -47,6 +48,9 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
 
     @Resource
     private FocusTagService focusTagService;
+
+    @Resource
+    private TaskScoreConfig taskScoreConfig;
 
     @Resource
     @Lazy
@@ -335,22 +339,18 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
      */
     private double getQualityScore(String qualityGrade) {
         if (qualityGrade == null || qualityGrade.trim().isEmpty()) {
-            return 2.0; // 默认为C级（合格）
+            return taskScoreConfig.getQualityGrade().getOrDefault("C", 2.0);
         }
 
-        switch (qualityGrade.toUpperCase()) {
-            case "A":
-                return 4.0; // 优秀
-            case "B":
-                return 3.0; // 良好
-            case "C":
-                return 2.0; // 合格
-            case "D":
-                return 1.0; // 不及格
-            default:
-                log.warn("未知的质量等级: {}, 使用默认分数2.0", qualityGrade);
-                return 2.0;
+        String grade = qualityGrade.toUpperCase();
+        Double score = taskScoreConfig.getQualityGrade().get(grade);
+        if (score != null) {
+            return score;
         }
+
+        Double defaultScore = taskScoreConfig.getQualityGrade().getOrDefault("C", 2.0);
+        log.warn("未知的质量等级: {}, 使用默认分数{}", qualityGrade, defaultScore);
+        return defaultScore;
     }
 
     /**
@@ -361,25 +361,17 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
      */
     private double getTimeCostCoefficient(String status) {
         if (status == null || status.trim().isEmpty()) {
-            return 0.5; // 默认为最低系数
+            return taskScoreConfig.getStatus().getOrDefault("incompleteoverdue", 0.5);
         }
 
-        switch (status.toLowerCase()) {
-            case "done":
-                return 1.0; // 按时完成
-            case "completedoverduealllowed":
-                return 0.9; // 超时完成（可接受范围内）
-            case "completedoverdue":
-                return 0.8; // 逾期完成
-            case "incompleteoverdue":
-            case "cancelled":
-                return 0.5; // 逾期未完成或已取消
-            case "todo":
-            case "in_progress":
-                return 0.5; // 未完成状态
-            default:
-                log.warn("未知的任务状态: {}, 使用默认时效系数0.5", status);
-                return 0.5;
+        String statusKey = status.toLowerCase();
+        Double coefficient = taskScoreConfig.getStatus().get(statusKey);
+        if (coefficient != null) {
+            return coefficient;
         }
+
+        Double defaultCoefficient = taskScoreConfig.getStatus().getOrDefault("incompleteoverdue", 0.5);
+        log.warn("未知的任务状态: {}, 使用默认时效系数{}", status, defaultCoefficient);
+        return defaultCoefficient;
     }
 }
