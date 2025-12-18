@@ -140,31 +140,7 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
     }
 
 
-    @Override
-    public List<FocusTaskDO> queryList(FocusTaskDO focusTask) {
-        QueryWrapper<FocusTaskDO> queryWrapper = new QueryWrapper<>();
 
-        // 添加查询条件
-        if (StringUtils.hasText(focusTask.getTitle())) {
-            queryWrapper.lambda().like(FocusTaskDO::getTitle, focusTask.getTitle());
-        }
-
-        if (StringUtils.hasText(focusTask.getStatus())) {
-            queryWrapper.lambda().eq(FocusTaskDO::getStatus, focusTask.getStatus());
-        }
-
-        if (focusTask.getGoalId() != null) {
-            queryWrapper.lambda().eq(FocusTaskDO::getGoalId, focusTask.getGoalId());
-        }
-
-        // 只查询当前用户的数据
-        queryWrapper.lambda().eq(FocusTaskDO::getUserId, LoginUserContext.getUserId());
-
-        // 按ID降序排列
-        queryWrapper.lambda().orderByDesc(FocusTaskDO::getId);
-
-        return this.list(queryWrapper);
-    }
 
     @Override
     public FocusTaskDO queryById(Long id) {
@@ -403,11 +379,11 @@ public class FocusTaskServiceImpl extends ServiceImpl<FocusTaskMapper, FocusTask
 
                     SpringUtils.getApplicationContext().publishEvent(event);
 
-                    log.debug("📤 任务删除事件已发布: taskId={}, goalId={}",
+                    log.debug("任务删除事件已发布: taskId={}, goalId={}",
                             task.getId(), task.getGoalId());
 
                 } catch (Exception e) {
-                    log.error("❌ 发布任务删除事件失败: taskId={}, goalId={}, error={}",
+                    log.error("发布任务删除事件失败: taskId={}, goalId={}, error={}",
                             task.getId(), task.getGoalId(), e.getMessage(), e);
                 }
             }

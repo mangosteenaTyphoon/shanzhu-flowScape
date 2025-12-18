@@ -41,15 +41,6 @@ public class FocusGoalController extends ApiResponseController {
     }
     
     /**
-     * 查询专注目标列表
-     */
-    @Operation(summary = "查询专注目标列表")
-    @PostMapping("/list")
-    public ApiResponseModel<List<FocusGoalDO>> queryList(@RequestBody FocusGoalDO focusGoal) {
-        return success(focusGoalService.queryList(focusGoal));
-    }
-    
-    /**
      * 根据ID查询专注目标
      */
     @Operation(summary = "根据ID查询专注目标")

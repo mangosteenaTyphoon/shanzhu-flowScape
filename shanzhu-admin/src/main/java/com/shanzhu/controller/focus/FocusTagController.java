@@ -39,15 +39,6 @@ public class FocusTagController extends ApiResponseController {
     }
     
     /**
-     * 查询专注标签列表
-     */
-    @Operation(summary = "查询专注标签列表")
-    @PostMapping("/list")
-    public ApiResponseModel<List<FocusTagDO>> queryList(@RequestBody FocusTagDO focusTag) {
-        return success(focusTagService.queryList(focusTag));
-    }
-    
-    /**
      * 根据ID查询专注标签
      */
     @Operation(summary = "根据ID查询专注标签")

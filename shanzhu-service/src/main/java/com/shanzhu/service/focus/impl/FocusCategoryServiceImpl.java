@@ -45,28 +45,6 @@ public class FocusCategoryServiceImpl extends ServiceImpl<FocusCategoryMapper, F
     }
 
     @Override
-    public List<FocusCategoryDO> queryList(FocusCategoryDO focusCategory) {
-        QueryWrapper<FocusCategoryDO> queryWrapper = new QueryWrapper<>();
-
-        // 添加查询条件
-        if (StringUtils.hasText(focusCategory.getName())) {
-            queryWrapper.lambda().like(FocusCategoryDO::getName, focusCategory.getName());
-        }
-
-        if (StringUtils.hasText(focusCategory.getType())) {
-            queryWrapper.lambda().eq(FocusCategoryDO::getType, focusCategory.getType());
-        }
-
-        // 只查询当前用户的数据
-        queryWrapper.lambda().eq(FocusCategoryDO::getUserId, LoginUserContext.getUserId());
-
-        // 按ID降序排列
-        queryWrapper.lambda().orderByDesc(FocusCategoryDO::getId);
-
-        return this.list(queryWrapper);
-    }
-
-    @Override
     public FocusCategoryDO queryById(Long id) {
         QueryWrapper<FocusCategoryDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda()

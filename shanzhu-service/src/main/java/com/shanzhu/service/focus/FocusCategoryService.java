@@ -19,14 +19,7 @@ public interface FocusCategoryService extends IService<FocusCategoryDO> {
      * @return 分页结果
      */
     IPage<FocusCategoryDO> queryPage(FocusCategoryDTO focusCategoryDTO);
-    
-    /**
-     * 查询专注分类列表
-     * @param focusCategory 查询条件
-     * @return 列表结果
-     */
-    List<FocusCategoryDO> queryList(FocusCategoryDO focusCategory);
-    
+
     /**
      * 根据ID查询专注分类
      * @param id 主键ID

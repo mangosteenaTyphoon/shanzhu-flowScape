@@ -22,13 +22,6 @@ public interface FocusTaskService extends IService<FocusTaskDO> {
     IPage<FocusTaskVO> queryPage(FocusTaskDTO focusTaskDTO);
 
     /**
-     * 查询专注任务列表
-     * @param focusTask 查询条件
-     * @return 列表结果
-     */
-    List<FocusTaskDO> queryList(FocusTaskDO focusTask);
-
-    /**
      * 根据ID查询专注任务
      * @param id 主键ID
      * @return 专注任务信息

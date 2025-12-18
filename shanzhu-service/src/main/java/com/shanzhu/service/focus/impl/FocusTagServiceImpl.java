@@ -40,24 +40,6 @@ public class FocusTagServiceImpl extends ServiceImpl<FocusTagMapper, FocusTagDO>
     }
 
     @Override
-    public List<FocusTagDO> queryList(FocusTagDO focusTag) {
-        QueryWrapper<FocusTagDO> queryWrapper = new QueryWrapper<>();
-
-        // 添加查询条件
-        if (StringUtils.hasText(focusTag.getName())) {
-            queryWrapper.lambda().like(FocusTagDO::getName, focusTag.getName());
-        }
-
-        // 只查询当前用户的数据
-        queryWrapper.lambda().eq(FocusTagDO::getUserId, LoginUserContext.getUserId());
-
-        // 按ID降序排列
-        queryWrapper.lambda().orderByDesc(FocusTagDO::getId);
-
-        return this.list(queryWrapper);
-    }
-
-    @Override
     public FocusTagDO queryById(Long id) {
         QueryWrapper<FocusTagDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda()

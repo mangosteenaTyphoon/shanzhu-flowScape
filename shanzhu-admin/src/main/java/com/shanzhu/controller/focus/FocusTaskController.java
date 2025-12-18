@@ -41,15 +41,6 @@ public class FocusTaskController extends ApiResponseController {
     }
     
     /**
-     * 查询专注任务列表
-     */
-    @Operation(summary = "查询专注任务列表")
-    @PostMapping("/list")
-    public ApiResponseModel<List<FocusTaskDO>> queryList(@RequestBody FocusTaskDO focusTask) {
-        return success(focusTaskService.queryList(focusTask));
-    }
-    
-    /**
      * 根据ID查询专注任务
      */
     @Operation(summary = "根据ID查询专注任务")

@@ -20,13 +20,6 @@ public interface FocusTagService extends IService<FocusTagDO> {
     IPage<FocusTagDO> queryPage(FocusTagDTO focusTagDTO);
     
     /**
-     * 查询专注标签列表
-     * @param focusTag 查询条件
-     * @return 列表结果
-     */
-    List<FocusTagDO> queryList(FocusTagDO focusTag);
-    
-    /**
      * 根据ID查询专注标签
      * @param id 主键ID
      * @return 专注标签信息

@@ -22,13 +22,6 @@ public interface FocusGoalService extends IService<FocusGoalDO> {
     IPage<FocusGoalVO> queryPage(FocusGoalDTO focusGoalDTO);
 
     /**
-     * 查询专注目标列表
-     * @param focusGoal 查询条件
-     * @return 列表结果
-     */
-    List<FocusGoalDO> queryList(FocusGoalDO focusGoal);
-
-    /**
      * 根据ID查询专注目标
      * @param id 主键ID
      * @return 专注目标信息

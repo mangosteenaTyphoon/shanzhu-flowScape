@@ -39,15 +39,6 @@ public class FocusCategoryController extends ApiResponseController {
     }
     
     /**
-     * 查询专注分类列表
-     */
-    @Operation(summary = "查询专注分类列表")
-    @PostMapping("/list")
-    public ApiResponseModel<List<FocusCategoryDO>> queryList(@RequestBody FocusCategoryDO focusCategory) {
-        return success(focusCategoryService.queryList(focusCategory));
-    }
-    
-    /**
      * 根据ID查询专注分类
      */
     @Operation(summary = "根据ID查询专注分类")

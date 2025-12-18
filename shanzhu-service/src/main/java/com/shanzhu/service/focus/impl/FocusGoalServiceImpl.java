@@ -141,28 +141,6 @@ public class FocusGoalServiceImpl extends ServiceImpl<FocusGoalMapper, FocusGoal
     }
 
     @Override
-    public List<FocusGoalDO> queryList(FocusGoalDO focusGoal) {
-        QueryWrapper<FocusGoalDO> queryWrapper = new QueryWrapper<>();
-
-        // 添加查询条件
-        if (StringUtils.hasText(focusGoal.getTitle())) {
-            queryWrapper.lambda().like(FocusGoalDO::getTitle, focusGoal.getTitle());
-        }
-
-        if (StringUtils.hasText(focusGoal.getStatus())) {
-            queryWrapper.lambda().eq(FocusGoalDO::getStatus, focusGoal.getStatus());
-        }
-
-        // 只查询当前用户的数据
-        queryWrapper.lambda().eq(FocusGoalDO::getUserId, LoginUserContext.getUserId());
-
-        // 按ID降序排列
-        queryWrapper.lambda().orderByDesc(FocusGoalDO::getId);
-
-        return this.list(queryWrapper);
-    }
-
-    @Override
     public FocusGoalDO queryById(Long id) {
         QueryWrapper<FocusGoalDO> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda()
